@@ -13,7 +13,7 @@ npm run dev
 
 1. 在 Supabase SQL Editor 中执行 `supabase/schema.sql`。
 2. 复制 `.env.example` 为 `.env.local`。
-3. 填入 `VITE_SUPABASE_URL` 和 `VITE_SUPABASE_ANON_KEY`。
+3. 填入 `VITE_SUPABASE_URL` 和 `VITE_SUPABASE_PUBLISHABLE_KEY`。
 
 如果已经执行过旧版无前缀字段的表结构，先执行 `supabase/migrations/20260629_prefix_score_columns.sql`，再执行 `supabase/schema.sql`。
 
@@ -34,4 +34,4 @@ npm run build
 如需在线排行榜，在 GitHub 仓库的 Actions secrets 中添加：
 
 - `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
