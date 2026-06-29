@@ -681,9 +681,9 @@ function LeaderboardPanel({ entries, loading, message }: LeaderboardPanelProps) 
                     {index + 1}
                   </div>
                   <div className="min-w-0">
-                    <div className="truncate font-semibold text-slate-950">{entry.player_id}</div>
+                    <div className="truncate font-semibold text-slate-950">{entry.playerId}</div>
                     <div className="text-xs text-muted-foreground">
-                      {formatDuration(entry.duration_seconds)}
+                      {formatDuration(entry.durationSeconds)}
                     </div>
                   </div>
                   <div className="text-right">
