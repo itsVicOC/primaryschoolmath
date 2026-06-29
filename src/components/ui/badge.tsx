@@ -14,6 +14,7 @@ const badgeVariants = cva(
         warm: "border-amber-200 bg-amber-50 text-amber-800",
         cool: "border-sky-200 bg-sky-50 text-sky-800",
         success: "border-emerald-200 bg-emerald-50 text-emerald-800",
+        fresh: "border-lime-200 bg-lime-50 text-lime-800",
       },
     },
     defaultVariants: {

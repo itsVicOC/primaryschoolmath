@@ -79,7 +79,19 @@ interface GameCardConfig {
   description: string;
   details: string;
   icon: LucideIcon;
-  tone: "success" | "warm" | "cool" | "secondary";
+}
+
+interface GameVisualConfig {
+  badgeVariant: "success" | "warm" | "cool" | "fresh" | "secondary";
+  border: string;
+  accentBar: string;
+  iconWrap: string;
+  iconText: string;
+  softPanel: string;
+  softBorder: string;
+  text: string;
+  primaryButton: string;
+  outlineHover: string;
 }
 
 const gameCards: GameCardConfig[] = [
@@ -91,7 +103,6 @@ const gameCards: GameCardConfig[] = [
     description: "100 以内加减法",
     details: "100 题 / 10 分钟",
     icon: Calculator,
-    tone: "success",
   },
   {
     key: "make-ten",
@@ -101,7 +112,6 @@ const gameCards: GameCardConfig[] = [
     description: "选择两节车厢凑成 10",
     details: "20 题 / 3 分钟",
     icon: TrainFront,
-    tone: "warm",
   },
   {
     key: "place-value",
@@ -111,7 +121,6 @@ const gameCards: GameCardConfig[] = [
     description: "用十位和个位拼数字",
     details: "20 题 / 3 分钟",
     icon: Blocks,
-    tone: "cool",
   },
   {
     key: "compare",
@@ -121,31 +130,75 @@ const gameCards: GameCardConfig[] = [
     description: "选择 >、< 或 =",
     details: "20 题 / 3 分钟",
     icon: Scale,
-    tone: "success",
   },
 ];
+
+const gameVisuals: Record<GameKey, GameVisualConfig> = {
+  arithmetic: {
+    badgeVariant: "success",
+    border: "border-emerald-200",
+    accentBar: "bg-emerald-500",
+    iconWrap: "bg-emerald-100",
+    iconText: "text-emerald-700",
+    softPanel: "bg-emerald-50",
+    softBorder: "border-emerald-100",
+    text: "text-emerald-700",
+    primaryButton: "bg-emerald-600 text-white hover:bg-emerald-700",
+    outlineHover: "hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800",
+  },
+  "make-ten": {
+    badgeVariant: "warm",
+    border: "border-amber-200",
+    accentBar: "bg-amber-500",
+    iconWrap: "bg-amber-100",
+    iconText: "text-amber-700",
+    softPanel: "bg-amber-50",
+    softBorder: "border-amber-100",
+    text: "text-amber-700",
+    primaryButton: "bg-amber-600 text-white hover:bg-amber-700",
+    outlineHover: "hover:border-amber-300 hover:bg-amber-50 hover:text-amber-800",
+  },
+  "place-value": {
+    badgeVariant: "cool",
+    border: "border-sky-200",
+    accentBar: "bg-sky-500",
+    iconWrap: "bg-sky-100",
+    iconText: "text-sky-700",
+    softPanel: "bg-sky-50",
+    softBorder: "border-sky-100",
+    text: "text-sky-700",
+    primaryButton: "bg-sky-600 text-white hover:bg-sky-700",
+    outlineHover: "hover:border-sky-300 hover:bg-sky-50 hover:text-sky-800",
+  },
+  compare: {
+    badgeVariant: "fresh",
+    border: "border-lime-200",
+    accentBar: "bg-lime-500",
+    iconWrap: "bg-lime-100",
+    iconText: "text-lime-700",
+    softPanel: "bg-lime-50",
+    softBorder: "border-lime-100",
+    text: "text-lime-700",
+    primaryButton: "bg-lime-700 text-white hover:bg-lime-800",
+    outlineHover: "hover:border-lime-300 hover:bg-lime-50 hover:text-lime-800",
+  },
+};
 
 const miniGameConfigs = {
   "make-ten": {
     title: "凑十小火车",
     description: "每题选择两节车厢，让它们刚好凑成 10。",
     icon: TrainFront,
-    accent: "text-amber-700",
-    badgeVariant: "warm" as const,
   },
   "place-value": {
     title: "十位个位积木",
     description: "看目标数字，用十位积木和个位积木拼出来。",
     icon: Blocks,
-    accent: "text-sky-700",
-    badgeVariant: "cool" as const,
   },
   compare: {
     title: "比大小鳄鱼",
     description: "比较左右两边，选择正确的 >、< 或 =。",
     icon: Scale,
-    accent: "text-emerald-700",
-    badgeVariant: "success" as const,
   },
 } satisfies Record<
   MiniGameKey,
@@ -153,8 +206,6 @@ const miniGameConfigs = {
     title: string;
     description: string;
     icon: LucideIcon;
-    accent: string;
-    badgeVariant: "success" | "warm" | "cool";
   }
 >;
 
@@ -203,7 +254,7 @@ function App() {
 
 function HomePage() {
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,#ecfeff_0,transparent_36rem),linear-gradient(180deg,#f8fafc_0%,#fff_44%,#f8fafc_100%)]">
+    <div className="min-h-screen bg-[#f6f8fb]">
       <SiteHeader />
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-6 sm:px-6 sm:py-10">
         <section className="grid items-center gap-6 lg:grid-cols-[1fr_0.9fr]">
@@ -219,7 +270,11 @@ function HomePage() {
                 从口算、凑十、数位和比较开始，用短局练习建立清楚的数学感觉。
               </p>
             </div>
-            <Button size="lg" onClick={() => navigateTo("arithmetic")}>
+            <Button
+              size="lg"
+              className={gameVisuals.arithmetic.primaryButton}
+              onClick={() => navigateTo("arithmetic")}
+            >
               <Play className="h-5 w-5" />
               开始口算练习
             </Button>
@@ -236,27 +291,44 @@ function HomePage() {
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {gameCards.map((game) => {
             const Icon = game.icon;
+            const visual = gameVisuals[game.key];
             return (
               <Card
                 key={game.key}
-                className="flex min-h-64 flex-col justify-between overflow-hidden border-emerald-100 shadow-soft"
+                className={cn(
+                  "group flex min-h-64 flex-col justify-between overflow-hidden bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-soft",
+                  visual.border,
+                )}
               >
-                <CardHeader>
+                <div className={cn("h-1 w-full", visual.accentBar)} />
+                <CardHeader className="space-y-4">
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
+                    <div
+                      className={cn(
+                        "flex h-12 w-12 items-center justify-center rounded-lg",
+                        visual.iconWrap,
+                        visual.iconText,
+                      )}
+                    >
                       <Icon className="h-6 w-6" />
                     </div>
-                    <Badge variant={game.tone}>{game.status}</Badge>
+                    <Badge variant={visual.badgeVariant}>{game.status}</Badge>
                   </div>
-                  <CardTitle>{game.title}</CardTitle>
-                  <CardDescription>{game.description}</CardDescription>
+                  <div className="space-y-1.5">
+                    <CardTitle className="leading-tight">{game.title}</CardTitle>
+                    <CardDescription>{game.description}</CardDescription>
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <Badge variant="outline">{game.grade}</Badge>
                   <div className="text-sm text-muted-foreground">{game.details}</div>
                 </CardContent>
                 <CardFooter>
-                  <Button className="w-full" onClick={() => navigateTo(game.key)}>
+                  <Button
+                    variant="outline"
+                    className={cn("w-full justify-between bg-white", visual.outlineHover)}
+                    onClick={() => navigateTo(game.key)}
+                  >
                     进入练习
                     <ChevronRight className="h-4 w-4" />
                   </Button>
@@ -279,7 +351,7 @@ function SiteHeader() {
           onClick={() => navigateTo("home")}
           type="button"
         >
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-950 text-white">
             <Calculator className="h-5 w-5" />
           </span>
           小学数学练习
@@ -294,6 +366,7 @@ function SiteHeader() {
 }
 
 function ArithmeticPractice() {
+  const visual = gameVisuals.arithmetic;
   const [practiceSet, setPracticeSet] = useState<PracticeSet>(createPracticeSetFromStorage);
   const questions = practiceSet.questions;
   const [phase, setPhase] = useState<PracticePhase>("ready");
@@ -465,9 +538,11 @@ function ArithmeticPractice() {
       <PracticeCardHeader
         current={`${answeredCount}/${TOTAL_QUESTIONS}`}
         durationLabel={formatDuration(remainingSeconds)}
+        icon={Calculator}
         progressValue={progressValue}
         title="口算练习"
         description="100 道 100 以内加减法，限时 10 分钟。"
+        visual={visual}
       />
 
       {phase === "ready" ? (
@@ -478,13 +553,20 @@ function ArithmeticPractice() {
             { label: "范围", value: "100" },
             { label: "限时", value: "10:00" },
           ]}
+          visual={visual}
         />
       ) : null}
 
       {phase === "playing" && currentQuestion ? (
         <CardContent className="space-y-7 p-5 sm:p-8">
-          <div className="rounded-lg border bg-slate-50 p-5 text-center sm:p-8">
-            <div className="text-sm font-medium text-muted-foreground">第 {currentIndex + 1} 题</div>
+          <div
+            className={cn(
+              "rounded-lg border p-5 text-center sm:p-8",
+              visual.softPanel,
+              visual.softBorder,
+            )}
+          >
+            <div className={cn("text-sm font-semibold", visual.text)}>第 {currentIndex + 1} 题</div>
             <div className="mt-4 flex items-center justify-center gap-3 text-5xl font-bold text-slate-950 sm:text-7xl">
               <span>{currentQuestion.left}</span>
               <span>{currentQuestion.operator}</span>
@@ -506,7 +588,12 @@ function ArithmeticPractice() {
               aria-label="答案"
               className="h-14 text-center text-2xl font-semibold"
             />
-            <Button size="lg" disabled={!answerIsValid} onClick={submitAnswer}>
+            <Button
+              size="lg"
+              className={visual.primaryButton}
+              disabled={!answerIsValid}
+              onClick={submitAnswer}
+            >
               <CheckCircle2 className="h-5 w-5" />
               {currentIndex === TOTAL_QUESTIONS - 1 ? "完成" : "下一题"}
             </Button>
@@ -530,6 +617,7 @@ function ArithmeticPractice() {
 function MiniGamePractice({ gameKey }: { gameKey: MiniGameKey }) {
   const config = miniGameConfigs[gameKey];
   const Icon = config.icon;
+  const visual = gameVisuals[gameKey];
   const [practiceSet, setPracticeSet] = useState<MiniGameSet>(() => generateMiniGameSet(gameKey));
   const questions = practiceSet.questions;
   const [phase, setPhase] = useState<PracticePhase>("ready");
@@ -686,9 +774,11 @@ function MiniGamePractice({ gameKey }: { gameKey: MiniGameKey }) {
       <PracticeCardHeader
         current={`${answeredCount}/${MINI_GAME_TOTAL_QUESTIONS}`}
         durationLabel={formatDuration(remainingSeconds)}
+        icon={Icon}
         progressValue={progressValue}
         title={config.title}
         description={`${config.description} 每局 20 题，限时 3 分钟。`}
+        visual={visual}
       />
 
       {phase === "ready" ? (
@@ -699,14 +789,15 @@ function MiniGamePractice({ gameKey }: { gameKey: MiniGameKey }) {
             { label: "限时", value: "3:00" },
             { label: "当前", value: `${score} 分` },
           ]}
+          visual={visual}
         />
       ) : null}
 
       {phase === "playing" && currentQuestion ? (
         <CardContent className="space-y-6 p-5 sm:p-8">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <Badge variant={config.badgeVariant}>第 {currentIndex + 1} 题</Badge>
-            <div className="text-sm font-semibold text-slate-600">当前 {score} 分</div>
+            <Badge variant={visual.badgeVariant}>第 {currentIndex + 1} 题</Badge>
+            <div className={cn("text-sm font-semibold", visual.text)}>当前 {score} 分</div>
           </div>
           <MiniGameQuestionPanel
             question={currentQuestion}
@@ -717,6 +808,7 @@ function MiniGamePractice({ gameKey }: { gameKey: MiniGameKey }) {
             setPlaceTens={setPlaceTens}
             setSelectedTrainIndexes={setSelectedTrainIndexes}
             submitAnswer={submitMiniGameAnswer}
+            visual={visual}
           />
         </CardContent>
       ) : null}
@@ -757,20 +849,29 @@ function PracticeLayout({
   leaderboardMessage,
   title,
 }: PracticeLayoutProps) {
+  const visual = gameVisuals[gameKey];
+
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-[#f6f8fb]">
       <SiteHeader />
       <main className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-6 sm:px-6 sm:py-8 lg:grid-cols-[minmax(0,1fr)_360px]">
         <section className="space-y-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <Button variant="ghost" onClick={() => navigateTo("home")}>
+            <Button
+              variant="ghost"
+              className="text-slate-700 hover:bg-white hover:text-slate-950"
+              onClick={() => navigateTo("home")}
+            >
               <ArrowLeft className="h-4 w-4" />
               返回首页
             </Button>
-            <Badge variant="success">{badge}</Badge>
+            <Badge variant={visual.badgeVariant}>{badge}</Badge>
           </div>
 
-          <Card className="overflow-hidden shadow-soft">{children}</Card>
+          <Card className={cn("overflow-hidden bg-white shadow-soft", visual.border)}>
+            <div className={cn("h-1 w-full", visual.accentBar)} />
+            {children}
+          </Card>
         </section>
 
         <LeaderboardPanel
@@ -782,6 +883,7 @@ function PracticeLayout({
           message={leaderboardMessage}
           subtitle={description}
           title="排行榜"
+          visual={visual}
         />
       </main>
     </div>
@@ -792,32 +894,51 @@ interface PracticeCardHeaderProps {
   current: string;
   description: string;
   durationLabel: string;
+  icon: LucideIcon;
   progressValue: number;
   title: string;
+  visual: GameVisualConfig;
 }
 
 function PracticeCardHeader({
   current,
   description,
   durationLabel,
+  icon: Icon,
   progressValue,
   title,
+  visual,
 }: PracticeCardHeaderProps) {
   return (
     <CardHeader className="border-b bg-white">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-2">
-          <CardTitle className="text-2xl leading-tight [word-break:keep-all] sm:text-3xl">
-            {title}
-          </CardTitle>
-          <CardDescription>{description}</CardDescription>
+        <div className="flex min-w-0 gap-3">
+          <div
+            className={cn(
+              "flex h-11 w-11 shrink-0 items-center justify-center rounded-lg",
+              visual.iconWrap,
+              visual.iconText,
+            )}
+          >
+            <Icon className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 space-y-2">
+            <CardTitle className="text-2xl leading-tight [word-break:keep-all] sm:text-3xl">
+              {title}
+            </CardTitle>
+            <CardDescription className="leading-6">{description}</CardDescription>
+          </div>
         </div>
         <div className="grid grid-cols-2 gap-2 text-sm sm:w-56">
-          <StatPill icon={Clock3} label="倒计时" value={durationLabel} />
-          <StatPill icon={Calculator} label="进度" value={current} />
+          <StatPill icon={Clock3} label="倒计时" value={durationLabel} visual={visual} />
+          <StatPill icon={Calculator} label="进度" value={current} visual={visual} />
         </div>
       </div>
-      <Progress value={progressValue} className="mt-4" />
+      <Progress
+        value={progressValue}
+        className="mt-4 bg-slate-100"
+        indicatorClassName={visual.accentBar}
+      />
     </CardHeader>
   );
 }
@@ -825,22 +946,24 @@ function PracticeCardHeader({
 interface ReadyPanelProps {
   onStart: () => void;
   stats: Array<{ label: string; value: string }>;
+  visual: GameVisualConfig;
 }
 
-function ReadyPanel({ onStart, stats }: ReadyPanelProps) {
+function ReadyPanel({ onStart, stats, visual }: ReadyPanelProps) {
   return (
     <CardContent className="grid gap-5 p-5 sm:p-8">
-      <div className="rounded-lg border bg-slate-50 p-5 sm:p-7">
-        <div className="grid gap-3 sm:grid-cols-3">
-          {stats.map((stat) => (
-            <div key={stat.label} className="rounded-lg bg-white p-4">
-              <div className="text-sm text-muted-foreground">{stat.label}</div>
-              <div className="mt-2 text-3xl font-bold text-slate-950">{stat.value}</div>
-            </div>
-          ))}
-        </div>
+      <div className="grid gap-3 sm:grid-cols-3">
+        {stats.map((stat) => (
+          <div
+            key={stat.label}
+            className={cn("rounded-lg border bg-white p-4", visual.softBorder)}
+          >
+            <div className="text-sm text-muted-foreground">{stat.label}</div>
+            <div className={cn("mt-2 text-3xl font-bold", visual.text)}>{stat.value}</div>
+          </div>
+        ))}
       </div>
-      <Button size="lg" className="w-full sm:w-fit" onClick={onStart}>
+      <Button size="lg" className={cn("w-full sm:w-fit", visual.primaryButton)} onClick={onStart}>
         <Play className="h-5 w-5" />
         开始答题
       </Button>
@@ -857,6 +980,7 @@ interface MiniGameQuestionPanelProps {
   setPlaceTens: React.Dispatch<React.SetStateAction<number>>;
   setSelectedTrainIndexes: React.Dispatch<React.SetStateAction<number[]>>;
   submitAnswer: (isCorrect: boolean) => void;
+  visual: GameVisualConfig;
 }
 
 function MiniGameQuestionPanel({
@@ -868,6 +992,7 @@ function MiniGameQuestionPanel({
   setPlaceTens,
   setSelectedTrainIndexes,
   submitAnswer,
+  visual,
 }: MiniGameQuestionPanelProps) {
   if (question.kind === "make-ten") {
     return (
@@ -876,6 +1001,7 @@ function MiniGameQuestionPanel({
         selectedIndexes={selectedTrainIndexes}
         setSelectedIndexes={setSelectedTrainIndexes}
         submitAnswer={submitAnswer}
+        visual={visual}
       />
     );
   }
@@ -889,11 +1015,12 @@ function MiniGameQuestionPanel({
         setTens={setPlaceTens}
         submitAnswer={submitAnswer}
         tens={placeTens}
+        visual={visual}
       />
     );
   }
 
-  return <ComparePanel question={question} submitAnswer={submitAnswer} />;
+  return <ComparePanel question={question} submitAnswer={submitAnswer} visual={visual} />;
 }
 
 interface MakeTenPanelProps {
@@ -901,6 +1028,7 @@ interface MakeTenPanelProps {
   selectedIndexes: number[];
   setSelectedIndexes: React.Dispatch<React.SetStateAction<number[]>>;
   submitAnswer: (isCorrect: boolean) => void;
+  visual: GameVisualConfig;
 }
 
 function MakeTenPanel({
@@ -908,6 +1036,7 @@ function MakeTenPanel({
   selectedIndexes,
   setSelectedIndexes,
   submitAnswer,
+  visual,
 }: MakeTenPanelProps) {
   const toggleIndex = (index: number) => {
     setSelectedIndexes((current) => {
@@ -925,8 +1054,8 @@ function MakeTenPanel({
 
   return (
     <div className="space-y-5">
-      <div className="rounded-lg border bg-amber-50 p-5 text-center">
-        <div className="text-sm font-semibold text-amber-800">选择两节车厢凑成 10</div>
+      <div className={cn("rounded-lg border p-5 text-center", visual.softPanel, visual.softBorder)}>
+        <div className={cn("text-sm font-semibold", visual.text)}>选择两节车厢凑成 10</div>
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
           {question.numbers.map((number, index) => {
             const selected = selectedIndexes.includes(index);
@@ -936,10 +1065,10 @@ function MakeTenPanel({
                 type="button"
                 onClick={() => toggleIndex(index)}
                 className={cn(
-                  "flex h-20 items-center justify-center rounded-lg border-2 bg-white text-4xl font-bold transition-colors",
+                  "flex h-20 items-center justify-center rounded-lg border-2 bg-white text-4xl font-bold shadow-sm transition-colors",
                   selected
                     ? "border-amber-500 bg-amber-100 text-amber-900"
-                    : "border-amber-200 text-slate-950 hover:border-amber-400",
+                    : "border-amber-200 text-slate-950 hover:border-amber-400 hover:bg-white",
                 )}
               >
                 {number}
@@ -950,7 +1079,7 @@ function MakeTenPanel({
       </div>
       <Button
         size="lg"
-        className="w-full"
+        className={cn("w-full", visual.primaryButton)}
         disabled={selectedIndexes.length !== 2}
         onClick={() => submitAnswer(isMakeTenSelectionCorrect(question, selectedIndexes))}
       >
@@ -968,6 +1097,7 @@ interface PlaceValuePanelProps {
   setTens: React.Dispatch<React.SetStateAction<number>>;
   submitAnswer: (isCorrect: boolean) => void;
   tens: number;
+  visual: GameVisualConfig;
 }
 
 function PlaceValuePanel({
@@ -977,13 +1107,14 @@ function PlaceValuePanel({
   setTens,
   submitAnswer,
   tens,
+  visual,
 }: PlaceValuePanelProps) {
   const currentValue = tens * 10 + ones;
 
   return (
     <div className="space-y-5">
-      <div className="rounded-lg border bg-sky-50 p-5 text-center">
-        <div className="text-sm font-semibold text-sky-800">拼出这个数字</div>
+      <div className={cn("rounded-lg border p-5 text-center", visual.softPanel, visual.softBorder)}>
+        <div className={cn("text-sm font-semibold", visual.text)}>拼出这个数字</div>
         <div className="mt-2 text-7xl font-bold text-slate-950">{question.target}</div>
         <div className="mt-2 text-sm text-slate-600">当前拼成 {currentValue}</div>
       </div>
@@ -995,6 +1126,7 @@ function PlaceValuePanel({
           min={0}
           setValue={setTens}
           value={tens}
+          visual={visual}
         />
         <PlaceValueControl
           label="个位积木"
@@ -1002,6 +1134,7 @@ function PlaceValuePanel({
           min={0}
           setValue={setOnes}
           value={ones}
+          visual={visual}
         />
       </div>
 
@@ -1014,7 +1147,7 @@ function PlaceValuePanel({
 
       <Button
         size="lg"
-        className="w-full"
+        className={cn("w-full", visual.primaryButton)}
         onClick={() => submitAnswer(isPlaceValueAnswerCorrect(question, tens, ones))}
       >
         <CheckCircle2 className="h-5 w-5" />
@@ -1030,17 +1163,19 @@ interface PlaceValueControlProps {
   min: number;
   setValue: React.Dispatch<React.SetStateAction<number>>;
   value: number;
+  visual: GameVisualConfig;
 }
 
-function PlaceValueControl({ label, max, min, setValue, value }: PlaceValueControlProps) {
+function PlaceValueControl({ label, max, min, setValue, value, visual }: PlaceValueControlProps) {
   return (
-    <div className="rounded-lg border bg-white p-4">
-      <div className="mb-3 text-sm font-semibold text-slate-700">{label}</div>
+    <div className={cn("rounded-lg border bg-white p-4", visual.softBorder)}>
+      <div className={cn("mb-3 text-sm font-semibold", visual.text)}>{label}</div>
       <div className="grid grid-cols-[3rem_1fr_3rem] items-center gap-3">
         <Button
           aria-label={`${label}减少`}
           size="icon"
           variant="outline"
+          className={visual.outlineHover}
           disabled={value <= min}
           onClick={() => setValue((current) => Math.max(min, current - 1))}
         >
@@ -1051,6 +1186,7 @@ function PlaceValueControl({ label, max, min, setValue, value }: PlaceValueContr
           aria-label={`${label}增加`}
           size="icon"
           variant="outline"
+          className={visual.outlineHover}
           disabled={value >= max}
           onClick={() => setValue((current) => Math.min(max, current + 1))}
         >
@@ -1098,17 +1234,18 @@ function BlockPreview({ count, label, type }: BlockPreviewProps) {
 interface ComparePanelProps {
   question: Extract<MiniGameQuestion, { kind: "compare" }>;
   submitAnswer: (isCorrect: boolean) => void;
+  visual: GameVisualConfig;
 }
 
-function ComparePanel({ question, submitAnswer }: ComparePanelProps) {
+function ComparePanel({ question, submitAnswer, visual }: ComparePanelProps) {
   const choices: CompareChoice[] = [">", "<", "="];
 
   return (
     <div className="space-y-5">
-      <div className="rounded-lg border bg-emerald-50 p-5">
+      <div className={cn("rounded-lg border p-5", visual.softPanel, visual.softBorder)}>
         <div className="grid items-center gap-4 sm:grid-cols-[1fr_auto_1fr]">
           <ExpressionCard expression={question.left.text} />
-          <div className="text-center text-sm font-semibold text-emerald-800">选择符号</div>
+          <div className={cn("text-center text-sm font-semibold", visual.text)}>选择符号</div>
           <ExpressionCard expression={question.right.text} />
         </div>
       </div>
@@ -1117,7 +1254,7 @@ function ComparePanel({ question, submitAnswer }: ComparePanelProps) {
           <Button
             key={choice}
             variant="outline"
-            className="h-20 text-4xl font-bold"
+            className={cn("h-20 bg-white text-4xl font-bold", visual.outlineHover)}
             onClick={() => submitAnswer(isCompareChoiceCorrect(question, choice))}
           >
             {choice}
@@ -1151,9 +1288,10 @@ function FinishPanel({
   result,
   totalQuestions,
 }: FinishPanelProps) {
+  const visual = gameVisuals[gameKey];
   const resultCards = useMemo(
     () => [
-      { label: "成绩", value: `${result.score}/${totalQuestions}`, tone: "text-emerald-700" },
+      { label: "成绩", value: `${result.score}/${totalQuestions}`, tone: visual.text },
       { label: "用时", value: formatDuration(result.durationSeconds), tone: "text-sky-700" },
       {
         label: "状态",
@@ -1161,14 +1299,14 @@ function FinishPanel({
         tone: "text-amber-700",
       },
     ],
-    [result, totalQuestions],
+    [result, totalQuestions, visual.text],
   );
 
   return (
     <CardContent className="space-y-6 p-5 sm:p-8">
       <div className="grid gap-3 sm:grid-cols-3">
         {resultCards.map((item) => (
-          <div key={item.label} className="rounded-lg border bg-white p-4">
+          <div key={item.label} className={cn("rounded-lg border bg-white p-4", visual.softBorder)}>
             <div className="text-sm text-muted-foreground">{item.label}</div>
             <div className={cn("mt-2 text-3xl font-bold", item.tone)}>{item.value}</div>
           </div>
@@ -1180,14 +1318,19 @@ function FinishPanel({
         onSubmitted={onLeaderboardRefresh}
         result={result}
         totalQuestions={totalQuestions}
+        visual={visual}
       />
 
       <div className="flex flex-col gap-3 sm:flex-row">
-        <Button variant="secondary" onClick={onPracticeAgain}>
+        <Button className={visual.primaryButton} onClick={onPracticeAgain}>
           <RotateCcw className="h-4 w-4" />
           再练一次
         </Button>
-        <Button variant="outline" onClick={() => navigateTo("home")}>
+        <Button
+          variant="outline"
+          className={cn("bg-white", visual.outlineHover)}
+          onClick={() => navigateTo("home")}
+        >
           <Home className="h-4 w-4" />
           回到首页
         </Button>
@@ -1201,6 +1344,7 @@ interface ScoreSubmissionFormProps {
   onSubmitted: () => Promise<void>;
   result: GameResult;
   totalQuestions: number;
+  visual: GameVisualConfig;
 }
 
 function ScoreSubmissionForm({
@@ -1208,6 +1352,7 @@ function ScoreSubmissionForm({
   onSubmitted,
   result,
   totalQuestions,
+  visual,
 }: ScoreSubmissionFormProps) {
   const [playerId, setPlayerId] = useState("");
   const [scoreMessage, setScoreMessage] = useState<string | undefined>();
@@ -1246,8 +1391,11 @@ function ScoreSubmissionForm({
   };
 
   return (
-    <form className="space-y-3 rounded-lg border bg-slate-50 p-4" onSubmit={handleSubmitScore}>
-      <label className="text-sm font-semibold text-slate-900" htmlFor="player-id">
+    <form
+      className={cn("space-y-3 rounded-lg border p-4", visual.softPanel, visual.softBorder)}
+      onSubmit={handleSubmitScore}
+    >
+      <label className={cn("text-sm font-semibold", visual.text)} htmlFor="player-id">
         玩家 ID
       </label>
       <div className="flex flex-col gap-3 sm:flex-row">
@@ -1263,7 +1411,7 @@ function ScoreSubmissionForm({
           disabled={scoreSubmitted}
         />
         <Button
-          className="sm:w-36"
+          className={cn("sm:w-36", visual.primaryButton)}
           type="submit"
           disabled={submitting || scoreSubmitted || !isSupabaseConfigured}
         >
@@ -1287,12 +1435,13 @@ interface StatPillProps {
   icon: LucideIcon;
   label: string;
   value: string;
+  visual: GameVisualConfig;
 }
 
-function StatPill({ icon: Icon, label, value }: StatPillProps) {
+function StatPill({ icon: Icon, label, value, visual }: StatPillProps) {
   return (
-    <div className="flex items-center gap-2 rounded-lg border bg-slate-50 px-3 py-2">
-      <Icon className="h-4 w-4 text-emerald-700" />
+    <div className={cn("flex items-center gap-2 rounded-lg border bg-white px-3 py-2", visual.softBorder)}>
+      <Icon className={cn("h-4 w-4", visual.text)} />
       <div className="min-w-0">
         <div className="text-xs text-muted-foreground">{label}</div>
         <div className="truncate font-semibold text-slate-950">{value}</div>
@@ -1310,6 +1459,7 @@ interface LeaderboardPanelProps {
   message?: string;
   subtitle: string;
   title: string;
+  visual: GameVisualConfig;
 }
 
 function LeaderboardPanel({
@@ -1321,23 +1471,39 @@ function LeaderboardPanel({
   message,
   subtitle,
   title,
+  visual,
 }: LeaderboardPanelProps) {
   return (
     <aside className="lg:sticky lg:top-24 lg:self-start">
-      <Card className="shadow-soft">
+      <Card className={cn("overflow-hidden bg-white shadow-soft", visual.border)}>
+        <div className={cn("h-1 w-full", visual.accentBar)} />
         <CardHeader>
           <div className="flex items-center justify-between gap-3">
             <div>
               <CardTitle className="flex items-center gap-2 text-xl">
-                <Trophy className="h-5 w-5 text-amber-600" />
+                <span
+                  className={cn(
+                    "flex h-8 w-8 items-center justify-center rounded-lg",
+                    visual.iconWrap,
+                    visual.iconText,
+                  )}
+                >
+                  <Trophy className="h-4 w-4" />
+                </span>
                 {title}
               </CardTitle>
               <CardDescription>{description}</CardDescription>
             </div>
             {loading ? <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /> : null}
           </div>
-          <div className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm text-muted-foreground">
-            <Icon className="h-4 w-4" />
+          <div
+            className={cn(
+              "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm text-muted-foreground",
+              visual.softPanel,
+              visual.softBorder,
+            )}
+          >
+            <Icon className={cn("h-4 w-4", visual.text)} />
             {subtitle}
           </div>
         </CardHeader>
@@ -1359,13 +1525,16 @@ function LeaderboardPanel({
               {entries.map((entry, index) => (
                 <div
                   key={`${gameKey}-${entry.id}`}
-                  className="grid grid-cols-[2rem_1fr_auto] items-center gap-3 rounded-lg border bg-white p-3"
+                  className={cn(
+                    "grid grid-cols-[2rem_1fr_auto] items-center gap-3 rounded-lg border bg-white p-3",
+                    visual.softBorder,
+                  )}
                 >
                   <div
                     className={cn(
                       "flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold",
                       index === 0
-                        ? "bg-amber-100 text-amber-800"
+                        ? cn(visual.iconWrap, visual.iconText)
                         : "bg-slate-100 text-slate-700",
                     )}
                   >
@@ -1378,7 +1547,7 @@ function LeaderboardPanel({
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-lg font-bold text-emerald-700">{entry.score}</div>
+                    <div className={cn("text-lg font-bold", visual.text)}>{entry.score}</div>
                     <div className="text-xs text-muted-foreground">分</div>
                   </div>
                 </div>
