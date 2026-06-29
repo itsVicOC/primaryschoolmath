@@ -1,6 +1,6 @@
 # 小学数学练习
 
-一个面向小学生的数学练习小游戏网站。第一版实现“一年级口算练习”：100 道 100 以内加减法，限时 10 分钟，并通过 Supabase 保存排行榜。
+一个面向小学生的数学练习小游戏网站。当前包含一年级口算练习、凑十小火车、十位个位积木、比大小鳄鱼，并通过 Supabase 保存每个游戏的独立排行榜。
 
 ## 本地开发
 
@@ -15,7 +15,11 @@ npm run dev
 2. 复制 `.env.example` 为 `.env.local`。
 3. 填入 `VITE_SUPABASE_URL` 和 `VITE_SUPABASE_PUBLISHABLE_KEY`。
 
-如果已经执行过旧版无前缀字段的表结构，先执行 `supabase/migrations/20260629_prefix_score_columns.sql`，再执行 `supabase/schema.sql`。
+如果已经执行过旧版无前缀字段的表结构，先执行 `supabase/migrations/20260629_prefix_score_columns.sql`。
+
+如果数据库已上线并且还没有 `score_game_key` 字段，再执行 `supabase/migrations/20260630_multi_game_scores.sql`。
+
+新项目可直接执行 `supabase/schema.sql`。
 
 未配置 Supabase 时，网站仍可练习口算，但无法提交和读取线上排行榜。
 

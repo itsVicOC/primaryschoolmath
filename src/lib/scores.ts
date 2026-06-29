@@ -1,7 +1,10 @@
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
+export type GameKey = "arithmetic" | "make-ten" | "place-value" | "compare";
+
 export interface LeaderboardEntry {
   id: string;
+  gameKey: GameKey;
   playerId: string;
   score: number;
   totalQuestions: number;
@@ -10,6 +13,7 @@ export interface LeaderboardEntry {
 }
 
 export interface ScoreInput {
+  gameKey: GameKey;
   playerId: string;
   score: number;
   totalQuestions: number;
@@ -22,9 +26,12 @@ export interface LeaderboardResult {
 }
 
 const SUPABASE_MISSING_MESSAGE = "未配置 Supabase，排行榜暂不可用。";
+const SCORE_SCHEMA_MISSING_MESSAGE =
+  "排行榜数据库还未升级，请先执行 supabase/migrations/20260630_multi_game_scores.sql。";
 
-interface ScoreRow {
+export interface ScoreRow {
   score_id: string;
+  score_game_key: GameKey;
   score_player_id: string;
   score_correct_count: number;
   score_total_questions: number;
@@ -32,9 +39,10 @@ interface ScoreRow {
   score_created_at: string;
 }
 
-function mapScoreRow(row: ScoreRow): LeaderboardEntry {
+export function mapScoreRow(row: ScoreRow): LeaderboardEntry {
   return {
     id: row.score_id,
+    gameKey: row.score_game_key,
     playerId: row.score_player_id,
     score: row.score_correct_count,
     totalQuestions: row.score_total_questions,
@@ -43,7 +51,18 @@ function mapScoreRow(row: ScoreRow): LeaderboardEntry {
   };
 }
 
-export async function fetchLeaderboard(limit = 10): Promise<LeaderboardResult> {
+export function formatScoreErrorMessage(message: string): string {
+  if (message.includes("score_game_key")) {
+    return SCORE_SCHEMA_MISSING_MESSAGE;
+  }
+
+  return message;
+}
+
+export async function fetchLeaderboard(
+  gameKey: GameKey,
+  limit = 10,
+): Promise<LeaderboardResult> {
   if (!isSupabaseConfigured || !supabase) {
     return { entries: [], message: SUPABASE_MISSING_MESSAGE };
   }
@@ -51,15 +70,16 @@ export async function fetchLeaderboard(limit = 10): Promise<LeaderboardResult> {
   const { data, error } = await supabase
     .from("scores")
     .select(
-      "score_id, score_player_id, score_correct_count, score_total_questions, score_duration_seconds, score_created_at",
+      "score_id, score_game_key, score_player_id, score_correct_count, score_total_questions, score_duration_seconds, score_created_at",
     )
+    .eq("score_game_key", gameKey)
     .order("score_correct_count", { ascending: false })
     .order("score_duration_seconds", { ascending: true })
     .order("score_created_at", { ascending: true })
     .limit(limit);
 
   if (error) {
-    return { entries: [], message: error.message };
+    return { entries: [], message: formatScoreErrorMessage(error.message) };
   }
 
   return { entries: ((data ?? []) as ScoreRow[]).map(mapScoreRow) };
@@ -71,6 +91,7 @@ export async function submitScore(input: ScoreInput): Promise<{ message?: string
   }
 
   const { error } = await supabase.from("scores").insert({
+    score_game_key: input.gameKey,
     score_player_id: input.playerId,
     score_correct_count: input.score,
     score_total_questions: input.totalQuestions,
@@ -78,7 +99,7 @@ export async function submitScore(input: ScoreInput): Promise<{ message?: string
   });
 
   if (error) {
-    return { message: error.message };
+    return { message: formatScoreErrorMessage(error.message) };
   }
 
   return {};
