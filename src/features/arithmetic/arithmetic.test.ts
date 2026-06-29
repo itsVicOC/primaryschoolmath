@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   calculateScore,
+  countAnsweredQuestions,
   formatDuration,
   generatePracticeSet,
   isAnswerInputValid,
@@ -49,6 +50,10 @@ describe("arithmetic practice", () => {
     );
 
     expect(calculateScore(practiceSet.questions, answers)).toBe(2);
+  });
+
+  it("counts only submitted answers", () => {
+    expect(countAnsweredQuestions([0, null, 12, null, 100])).toBe(3);
   });
 
   it("formats durations as minutes and seconds", () => {

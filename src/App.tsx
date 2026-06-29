@@ -6,6 +6,7 @@ import {
   Clock3,
   Home,
   Loader2,
+  type LucideIcon,
   Play,
   RotateCcw,
   Send,
@@ -27,6 +28,7 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import {
   calculateScore,
+  countAnsweredQuestions,
   formatDuration,
   GAME_DURATION_SECONDS,
   generatePracticeSet,
@@ -246,12 +248,10 @@ function ArithmeticPractice() {
   const answerInputRef = useRef<HTMLInputElement>(null);
 
   const currentQuestion = questions[currentIndex];
+  const answeredCount = countAnsweredQuestions(answers);
   const remainingSeconds = Math.max(0, GAME_DURATION_SECONDS - elapsedSeconds);
   const answerIsValid = isAnswerInputValid(answerInput);
-  const progressValue =
-    phase === "finished"
-      ? 100
-      : Math.round((currentIndex / Math.max(questions.length, 1)) * 100);
+  const progressValue = Math.round((answeredCount / Math.max(questions.length, 1)) * 100);
 
   const loadLeaderboard = useCallback(async () => {
     setLeaderboardLoading(true);
@@ -291,6 +291,7 @@ function ArithmeticPractice() {
           : Math.min(GAME_DURATION_SECONDS, Math.max(0, Math.ceil((now - started) / 1000)));
 
       setElapsedSeconds(durationSeconds);
+      phaseRef.current = "finished";
       setResult({
         score: calculateScore(questions, finalAnswers),
         durationSeconds,
@@ -462,7 +463,7 @@ function ArithmeticPractice() {
                   <StatPill
                     icon={Calculator}
                     label="进度"
-                    value={`${Math.min(currentIndex + (phase === "finished" ? 1 : 0), TOTAL_QUESTIONS)}/${TOTAL_QUESTIONS}`}
+                    value={`${answeredCount}/${TOTAL_QUESTIONS}`}
                   />
                 </div>
               </div>
@@ -611,7 +612,7 @@ function ReadyPanel({ onStart }: ReadyPanelProps) {
 }
 
 interface StatPillProps {
-  icon: typeof Clock3;
+  icon: LucideIcon;
   label: string;
   value: string;
 }

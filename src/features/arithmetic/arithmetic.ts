@@ -110,6 +110,10 @@ export function calculateScore(
   }, 0);
 }
 
+export function countAnsweredQuestions(answers: Array<number | null>): number {
+  return answers.filter((answer) => answer !== null).length;
+}
+
 export function formatDuration(seconds: number): string {
   const safeSeconds = Math.max(0, Math.floor(seconds));
   const minutes = Math.floor(safeSeconds / 60);
