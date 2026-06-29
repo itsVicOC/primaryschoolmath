@@ -1,0 +1,20 @@
+<svg width="720" height="520" viewBox="0 0 720 520" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">数学练习数字卡片</title>
+  <desc id="desc">彩色数字和运算符组成的练习图案</desc>
+  <rect width="720" height="520" rx="32" fill="#F8FAFC"/>
+  <rect x="64" y="58" width="592" height="404" rx="24" fill="white" stroke="#CBD5E1" stroke-width="3"/>
+  <rect x="104" y="96" width="136" height="112" rx="18" fill="#D1FAE5"/>
+  <text x="172" y="169" text-anchor="middle" font-family="Arial, sans-serif" font-size="58" font-weight="700" fill="#047857">8</text>
+  <rect x="292" y="96" width="136" height="112" rx="18" fill="#FEF3C7"/>
+  <text x="360" y="169" text-anchor="middle" font-family="Arial, sans-serif" font-size="58" font-weight="700" fill="#B45309">+</text>
+  <rect x="480" y="96" width="136" height="112" rx="18" fill="#DBEAFE"/>
+  <text x="548" y="169" text-anchor="middle" font-family="Arial, sans-serif" font-size="58" font-weight="700" fill="#1D4ED8">7</text>
+  <rect x="104" y="254" width="136" height="112" rx="18" fill="#FFE4E6"/>
+  <text x="172" y="327" text-anchor="middle" font-family="Arial, sans-serif" font-size="58" font-weight="700" fill="#BE123C">15</text>
+  <rect x="292" y="254" width="136" height="112" rx="18" fill="#E0E7FF"/>
+  <text x="360" y="327" text-anchor="middle" font-family="Arial, sans-serif" font-size="58" font-weight="700" fill="#4338CA">−</text>
+  <rect x="480" y="254" width="136" height="112" rx="18" fill="#CCFBF1"/>
+  <text x="548" y="327" text-anchor="middle" font-family="Arial, sans-serif" font-size="58" font-weight="700" fill="#0F766E">4</text>
+  <path d="M124 416H596" stroke="#94A3B8" stroke-width="10" stroke-linecap="round"/>
+  <path d="M124 416H394" stroke="#22C55E" stroke-width="10" stroke-linecap="round"/>
+</svg>
