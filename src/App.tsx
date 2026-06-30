@@ -57,7 +57,29 @@ import {
   type MiniGameSet,
   type PlaceValueQuestion,
 } from "@/features/mini-games/miniGames";
-import { fetchLeaderboard, submitScore, type GameKey, type LeaderboardEntry } from "@/lib/scores";
+import {
+  createEmptyColumnArithmeticAnswer,
+  generateSummerHomeworkSet,
+  isColumnArithmeticAnswerCorrect,
+  isSummerHomeworkChoiceCorrect,
+  isSummerHomeworkGameKey,
+  SUMMER_HOMEWORK_GAME_DURATION_SECONDS,
+  SUMMER_HOMEWORK_GAME_TOTAL_QUESTIONS,
+  type ColumnArithmeticAnswer,
+  type ColumnArithmeticQuestion,
+  type MultiplicationGroupsQuestion,
+  type SummerHomeworkGameKey,
+  type SummerHomeworkQuestion,
+  type SummerHomeworkSet,
+  type TimesTableQuestion,
+} from "@/features/summer-homework/summerHomeworkGames";
+import {
+  fetchLeaderboard,
+  isGameKey,
+  submitScore,
+  type GameKey,
+  type LeaderboardEntry,
+} from "@/lib/scores";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 
@@ -131,6 +153,33 @@ const gameCards: GameCardConfig[] = [
     details: "20 题 / 3 分钟",
     icon: Scale,
   },
+  {
+    key: "column-arithmetic",
+    title: "竖式工坊",
+    grade: "一年级暑假",
+    status: "已开放",
+    description: "100 以内加减法列竖式",
+    details: "12 题 / 8 分钟",
+    icon: Calculator,
+  },
+  {
+    key: "multiplication-groups",
+    title: "分组乘法",
+    grade: "一年级暑假",
+    status: "已开放",
+    description: "看图写连加和乘法",
+    details: "15 题 / 5 分钟",
+    icon: Blocks,
+  },
+  {
+    key: "times-table",
+    title: "口诀快答",
+    grade: "一年级暑假",
+    status: "已开放",
+    description: "乘法口诀与缺因数",
+    details: "24 题 / 4 分钟",
+    icon: Trophy,
+  },
 ];
 
 const gameVisuals: Record<GameKey, GameVisualConfig> = {
@@ -182,6 +231,42 @@ const gameVisuals: Record<GameKey, GameVisualConfig> = {
     primaryButton: "bg-lime-700 text-white hover:bg-lime-800",
     outlineHover: "hover:border-lime-300 hover:bg-lime-50 hover:text-lime-800",
   },
+  "column-arithmetic": {
+    badgeVariant: "secondary",
+    border: "border-rose-200",
+    accentBar: "bg-rose-500",
+    iconWrap: "bg-rose-100",
+    iconText: "text-rose-700",
+    softPanel: "bg-rose-50",
+    softBorder: "border-rose-100",
+    text: "text-rose-700",
+    primaryButton: "bg-rose-600 text-white hover:bg-rose-700",
+    outlineHover: "hover:border-rose-300 hover:bg-rose-50 hover:text-rose-800",
+  },
+  "multiplication-groups": {
+    badgeVariant: "warm",
+    border: "border-orange-200",
+    accentBar: "bg-orange-500",
+    iconWrap: "bg-orange-100",
+    iconText: "text-orange-700",
+    softPanel: "bg-orange-50",
+    softBorder: "border-orange-100",
+    text: "text-orange-700",
+    primaryButton: "bg-orange-600 text-white hover:bg-orange-700",
+    outlineHover: "hover:border-orange-300 hover:bg-orange-50 hover:text-orange-800",
+  },
+  "times-table": {
+    badgeVariant: "cool",
+    border: "border-cyan-200",
+    accentBar: "bg-cyan-500",
+    iconWrap: "bg-cyan-100",
+    iconText: "text-cyan-700",
+    softPanel: "bg-cyan-50",
+    softBorder: "border-cyan-100",
+    text: "text-cyan-700",
+    primaryButton: "bg-cyan-700 text-white hover:bg-cyan-800",
+    outlineHover: "hover:border-cyan-300 hover:bg-cyan-50 hover:text-cyan-800",
+  },
 };
 
 const miniGameConfigs = {
@@ -209,10 +294,35 @@ const miniGameConfigs = {
   }
 >;
 
+const summerHomeworkConfigs = {
+  "column-arithmetic": {
+    title: "竖式工坊",
+    description: "把横式改成竖式，填好数位、符号、进退位和答案。",
+    icon: Calculator,
+  },
+  "multiplication-groups": {
+    title: "分组乘法",
+    description: "看每组有几个、共有几组，选择正确的连加式或乘法式。",
+    icon: Blocks,
+  },
+  "times-table": {
+    title: "口诀快答",
+    description: "练习乘法口诀、缺因数和乘法口算。",
+    icon: Trophy,
+  },
+} satisfies Record<
+  SummerHomeworkGameKey,
+  {
+    title: string;
+    description: string;
+    icon: LucideIcon;
+  }
+>;
+
 function getPageFromHash(): Page {
   const page = window.location.hash.replace(/^#\/?/, "");
 
-  if (page === "arithmetic" || page === "make-ten" || page === "place-value" || page === "compare") {
+  if (isGameKey(page)) {
     return page;
   }
 
@@ -241,12 +351,20 @@ function App() {
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
 
+  useEffect(() => {
+    window.scrollTo({ left: 0, top: 0 });
+  }, [page]);
+
   if (page === "arithmetic") {
     return <ArithmeticPractice />;
   }
 
   if (page === "make-ten" || page === "place-value" || page === "compare") {
     return <MiniGamePractice key={page} gameKey={page} />;
+  }
+
+  if (isSummerHomeworkGameKey(page)) {
+    return <SummerHomeworkPractice key={page} gameKey={page} />;
   }
 
   return <HomePage />;
@@ -826,6 +944,215 @@ function MiniGamePractice({ gameKey }: { gameKey: MiniGameKey }) {
   );
 }
 
+function SummerHomeworkPractice({ gameKey }: { gameKey: SummerHomeworkGameKey }) {
+  const config = summerHomeworkConfigs[gameKey];
+  const Icon = config.icon;
+  const visual = gameVisuals[gameKey];
+  const totalQuestions = SUMMER_HOMEWORK_GAME_TOTAL_QUESTIONS[gameKey];
+  const durationSeconds = SUMMER_HOMEWORK_GAME_DURATION_SECONDS[gameKey];
+  const [practiceSet, setPracticeSet] = useState<SummerHomeworkSet>(() =>
+    generateSummerHomeworkSet(gameKey),
+  );
+  const questions = practiceSet.questions;
+  const [phase, setPhase] = useState<PracticePhase>("ready");
+  const phaseRef = useRef<PracticePhase>(phase);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [answeredCount, setAnsweredCount] = useState(0);
+  const [score, setScore] = useState(0);
+  const scoreRef = useRef(0);
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const startedAtRef = useRef<number | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [result, setResult] = useState<GameResult | null>(null);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [leaderboardMessage, setLeaderboardMessage] = useState<string | undefined>();
+  const [leaderboardLoading, setLeaderboardLoading] = useState(false);
+  const [columnAnswer, setColumnAnswer] = useState<ColumnArithmeticAnswer>(
+    createEmptyColumnArithmeticAnswer,
+  );
+
+  const currentQuestion = questions[currentIndex];
+  const remainingSeconds = Math.max(0, durationSeconds - elapsedSeconds);
+  const progressValue = Math.round((answeredCount / Math.max(questions.length, 1)) * 100);
+
+  const loadLeaderboard = useCallback(async () => {
+    setLeaderboardLoading(true);
+    const result = await fetchLeaderboard(gameKey, 10);
+    setLeaderboard(result.entries);
+    setLeaderboardMessage(result.message);
+    setLeaderboardLoading(false);
+  }, [gameKey]);
+
+  useEffect(() => {
+    phaseRef.current = phase;
+  }, [phase]);
+
+  useEffect(() => {
+    scoreRef.current = score;
+  }, [score]);
+
+  useEffect(() => {
+    loadLeaderboard();
+  }, [loadLeaderboard]);
+
+  const resetQuestionState = useCallback(() => {
+    setColumnAnswer(createEmptyColumnArithmeticAnswer());
+  }, []);
+
+  const finishGame = useCallback(
+    (reason: FinishReason, finalScore = scoreRef.current) => {
+      if (phaseRef.current !== "playing") {
+        return;
+      }
+
+      const now = Date.now();
+      const started = startedAtRef.current ?? now;
+      const finalDurationSeconds =
+        reason === "timeout"
+          ? durationSeconds
+          : Math.min(durationSeconds, Math.max(0, Math.ceil((now - started) / 1000)));
+
+      setElapsedSeconds(finalDurationSeconds);
+      phaseRef.current = "finished";
+      setResult({ score: finalScore, durationSeconds: finalDurationSeconds, reason });
+      setPhase("finished");
+    },
+    [durationSeconds],
+  );
+
+  useEffect(() => {
+    if (phase !== "playing" || !startedAt) {
+      return;
+    }
+
+    const tick = () => {
+      const nextElapsed = Math.min(durationSeconds, Math.floor((Date.now() - startedAt) / 1000));
+      setElapsedSeconds(nextElapsed);
+
+      if (nextElapsed >= durationSeconds) {
+        finishGame("timeout");
+      }
+    };
+
+    tick();
+    const timerId = window.setInterval(tick, 250);
+    return () => window.clearInterval(timerId);
+  }, [durationSeconds, finishGame, phase, startedAt]);
+
+  const startPractice = () => {
+    const now = Date.now();
+
+    startedAtRef.current = now;
+    setStartedAt(now);
+    setElapsedSeconds(0);
+    setCurrentIndex(0);
+    setAnsweredCount(0);
+    setScore(0);
+    scoreRef.current = 0;
+    resetQuestionState();
+    setPhase("playing");
+  };
+
+  const resetPractice = () => {
+    setPracticeSet(generateSummerHomeworkSet(gameKey));
+    setPhase("ready");
+    phaseRef.current = "ready";
+    setCurrentIndex(0);
+    setAnsweredCount(0);
+    setScore(0);
+    scoreRef.current = 0;
+    setStartedAt(null);
+    startedAtRef.current = null;
+    setElapsedSeconds(0);
+    setResult(null);
+    resetQuestionState();
+  };
+
+  const submitSummerAnswer = (isCorrect: boolean) => {
+    if (phaseRef.current !== "playing") {
+      return;
+    }
+
+    const nextScore = scoreRef.current + (isCorrect ? 1 : 0);
+    const nextAnsweredCount = answeredCount + 1;
+
+    setScore(nextScore);
+    scoreRef.current = nextScore;
+    setAnsweredCount(nextAnsweredCount);
+
+    if (currentIndex >= questions.length - 1) {
+      finishGame("completed", nextScore);
+      return;
+    }
+
+    setCurrentIndex((index) => index + 1);
+    resetQuestionState();
+  };
+
+  return (
+    <PracticeLayout
+      badge="一年级暑假作业"
+      description={config.description}
+      gameKey={gameKey}
+      icon={Icon}
+      leaderboard={leaderboard}
+      leaderboardLoading={leaderboardLoading}
+      leaderboardMessage={leaderboardMessage}
+      title={config.title}
+    >
+      <PracticeCardHeader
+        current={`${answeredCount}/${totalQuestions}`}
+        durationLabel={formatDuration(remainingSeconds)}
+        icon={Icon}
+        progressValue={progressValue}
+        title={config.title}
+        description={`${config.description} 每局 ${totalQuestions} 题，限时 ${formatDuration(
+          durationSeconds,
+        )}。`}
+        visual={visual}
+      />
+
+      {phase === "ready" ? (
+        <ReadyPanel
+          onStart={startPractice}
+          stats={[
+            { label: "题量", value: `${totalQuestions}` },
+            { label: "限时", value: formatDuration(durationSeconds) },
+            { label: "当前", value: `${score} 分` },
+          ]}
+          visual={visual}
+        />
+      ) : null}
+
+      {phase === "playing" && currentQuestion ? (
+        <CardContent className="space-y-6 p-5 sm:p-8">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Badge variant={visual.badgeVariant}>第 {currentIndex + 1} 题</Badge>
+            <div className={cn("text-sm font-semibold", visual.text)}>当前 {score} 分</div>
+          </div>
+          <SummerHomeworkQuestionPanel
+            columnAnswer={columnAnswer}
+            question={currentQuestion}
+            setColumnAnswer={setColumnAnswer}
+            submitAnswer={submitSummerAnswer}
+            visual={visual}
+          />
+        </CardContent>
+      ) : null}
+
+      {phase === "finished" && result ? (
+        <FinishPanel
+          gameKey={gameKey}
+          onLeaderboardRefresh={loadLeaderboard}
+          onPracticeAgain={resetPractice}
+          result={result}
+          totalQuestions={totalQuestions}
+        />
+      ) : null}
+    </PracticeLayout>
+  );
+}
+
 interface PracticeLayoutProps {
   badge: string;
   children: React.ReactNode;
@@ -1021,6 +1348,322 @@ function MiniGameQuestionPanel({
   }
 
   return <ComparePanel question={question} submitAnswer={submitAnswer} visual={visual} />;
+}
+
+interface SummerHomeworkQuestionPanelProps {
+  columnAnswer: ColumnArithmeticAnswer;
+  question: SummerHomeworkQuestion;
+  setColumnAnswer: React.Dispatch<React.SetStateAction<ColumnArithmeticAnswer>>;
+  submitAnswer: (isCorrect: boolean) => void;
+  visual: GameVisualConfig;
+}
+
+function SummerHomeworkQuestionPanel({
+  columnAnswer,
+  question,
+  setColumnAnswer,
+  submitAnswer,
+  visual,
+}: SummerHomeworkQuestionPanelProps) {
+  if (question.kind === "column-arithmetic") {
+    return (
+      <ColumnArithmeticPanel
+        answer={columnAnswer}
+        question={question}
+        setAnswer={setColumnAnswer}
+        submitAnswer={submitAnswer}
+        visual={visual}
+      />
+    );
+  }
+
+  if (question.kind === "multiplication-groups") {
+    return <MultiplicationGroupsPanel question={question} submitAnswer={submitAnswer} visual={visual} />;
+  }
+
+  return <TimesTablePanel question={question} submitAnswer={submitAnswer} visual={visual} />;
+}
+
+interface ColumnArithmeticPanelProps {
+  answer: ColumnArithmeticAnswer;
+  question: ColumnArithmeticQuestion;
+  setAnswer: React.Dispatch<React.SetStateAction<ColumnArithmeticAnswer>>;
+  submitAnswer: (isCorrect: boolean) => void;
+  visual: GameVisualConfig;
+}
+
+function sanitizeDigitInput(value: string): string {
+  return value.replace(/\D/g, "").slice(0, 1);
+}
+
+function ColumnArithmeticPanel({
+  answer,
+  question,
+  setAnswer,
+  submitAnswer,
+  visual,
+}: ColumnArithmeticPanelProps) {
+  const setDigit = (field: Exclude<keyof ColumnArithmeticAnswer, "operator">, value: string) => {
+    setAnswer((current) => ({ ...current, [field]: sanitizeDigitInput(value) }));
+  };
+  const setOperator = (operator: ColumnArithmeticAnswer["operator"]) => {
+    setAnswer((current) => ({ ...current, operator }));
+  };
+  const setRegroup = (regroup: string) => {
+    setAnswer((current) => ({ ...current, regroup }));
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className={cn("rounded-lg border p-5 text-center", visual.softPanel, visual.softBorder)}>
+        <div className={cn("text-sm font-semibold", visual.text)}>把横式填成竖式</div>
+        <div className="mt-3 text-5xl font-bold text-slate-950 sm:text-6xl">
+          {question.left} {question.operator} {question.right} =
+        </div>
+      </div>
+
+      <div className="rounded-lg border bg-white p-4 sm:p-5">
+        <div className="mx-auto grid max-w-md grid-cols-[3.5rem_repeat(3,minmax(0,4.25rem))] gap-2 text-center">
+          <div />
+          <ColumnHeaderCell label="百" />
+          <ColumnHeaderCell label="十" />
+          <ColumnHeaderCell label="个" />
+
+          <ColumnRowLabel label="上排" />
+          <EmptyColumnCell />
+          <ColumnDigitInput
+            ariaLabel="上排十位"
+            value={answer.leftTens}
+            onChange={(value) => setDigit("leftTens", value)}
+          />
+          <ColumnDigitInput
+            ariaLabel="上排个位"
+            value={answer.leftOnes}
+            onChange={(value) => setDigit("leftOnes", value)}
+          />
+
+          <div className="flex items-center justify-center gap-1">
+            {(["+", "-"] as const).map((operator) => (
+              <button
+                key={operator}
+                type="button"
+                className={cn(
+                  "flex h-10 w-10 items-center justify-center rounded-lg border text-2xl font-bold transition-colors",
+                  answer.operator === operator
+                    ? cn(visual.primaryButton, "border-transparent")
+                    : cn("bg-white text-slate-700", visual.outlineHover),
+                )}
+                onClick={() => setOperator(operator)}
+                aria-label={`选择${operator}`}
+              >
+                {operator}
+              </button>
+            ))}
+          </div>
+          <EmptyColumnCell />
+          <ColumnDigitInput
+            ariaLabel="下排十位"
+            value={answer.rightTens}
+            onChange={(value) => setDigit("rightTens", value)}
+          />
+          <ColumnDigitInput
+            ariaLabel="下排个位"
+            value={answer.rightOnes}
+            onChange={(value) => setDigit("rightOnes", value)}
+          />
+
+          <div className="col-span-4 h-px bg-slate-300" />
+
+          <ColumnRowLabel label="结果" />
+          <ColumnDigitInput
+            ariaLabel="结果百位"
+            value={answer.resultHundreds}
+            onChange={(value) => setDigit("resultHundreds", value)}
+          />
+          <ColumnDigitInput
+            ariaLabel="结果十位"
+            value={answer.resultTens}
+            onChange={(value) => setDigit("resultTens", value)}
+          />
+          <ColumnDigitInput
+            ariaLabel="结果个位"
+            value={answer.resultOnes}
+            onChange={(value) => setDigit("resultOnes", value)}
+          />
+        </div>
+      </div>
+
+      <div className={cn("rounded-lg border p-4", visual.softPanel, visual.softBorder)}>
+        <div className={cn("mb-3 text-sm font-semibold", visual.text)}>进退位标记</div>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { label: "无", value: "0" },
+            { label: "1", value: "1" },
+          ].map((item) => (
+            <Button
+              key={item.value}
+              type="button"
+              variant="outline"
+              className={cn(
+                "h-12 bg-white text-lg",
+                answer.regroup === item.value
+                  ? cn(visual.primaryButton, "border-transparent")
+                  : visual.outlineHover,
+              )}
+              onClick={() => setRegroup(item.value)}
+            >
+              {item.label}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      <Button
+        size="lg"
+        className={cn("w-full", visual.primaryButton)}
+        onClick={() => submitAnswer(isColumnArithmeticAnswerCorrect(question, answer))}
+      >
+        <CheckCircle2 className="h-5 w-5" />
+        提交
+      </Button>
+    </div>
+  );
+}
+
+function ColumnHeaderCell({ label }: { label: string }) {
+  return <div className="text-sm font-semibold text-slate-600">{label}</div>;
+}
+
+function ColumnRowLabel({ label }: { label: string }) {
+  return (
+    <div className="flex h-14 items-center justify-center text-sm font-semibold text-slate-600">
+      {label}
+    </div>
+  );
+}
+
+function EmptyColumnCell() {
+  return <div className="h-14 rounded-lg border border-dashed bg-slate-50" />;
+}
+
+function ColumnDigitInput({
+  ariaLabel,
+  onChange,
+  value,
+}: {
+  ariaLabel: string;
+  onChange: (value: string) => void;
+  value: string;
+}) {
+  return (
+    <Input
+      aria-label={ariaLabel}
+      inputMode="numeric"
+      maxLength={1}
+      pattern="[0-9]*"
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      className="h-14 px-0 text-center text-2xl font-bold"
+    />
+  );
+}
+
+interface MultiplicationGroupsPanelProps {
+  question: MultiplicationGroupsQuestion;
+  submitAnswer: (isCorrect: boolean) => void;
+  visual: GameVisualConfig;
+}
+
+function MultiplicationGroupsPanel({
+  question,
+  submitAnswer,
+  visual,
+}: MultiplicationGroupsPanelProps) {
+  return (
+    <div className="space-y-5">
+      <div className={cn("rounded-lg border p-5", visual.softPanel, visual.softBorder)}>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          {Array.from({ length: question.groups }, (_, groupIndex) => (
+            <div
+              key={`${question.id}-group-${groupIndex}`}
+              className="flex aspect-square min-h-20 items-center justify-center rounded-full border-2 border-slate-300 bg-white p-3"
+            >
+              <div className="grid grid-cols-3 gap-1.5">
+                {Array.from({ length: question.perGroup }, (_, dotIndex) => (
+                  <span
+                    key={`${question.id}-group-${groupIndex}-dot-${dotIndex}`}
+                    className={cn("h-3 w-3 rounded-full sm:h-4 sm:w-4", visual.accentBar)}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 text-center text-sm font-semibold text-slate-600">
+          {question.groups} 组，每组 {question.perGroup} 个
+        </div>
+      </div>
+
+      <ChoiceQuestionPanel
+        options={question.options}
+        prompt={question.prompt}
+        submitAnswer={(choice) => submitAnswer(isSummerHomeworkChoiceCorrect(question, choice))}
+        visual={visual}
+      />
+    </div>
+  );
+}
+
+interface TimesTablePanelProps {
+  question: TimesTableQuestion;
+  submitAnswer: (isCorrect: boolean) => void;
+  visual: GameVisualConfig;
+}
+
+function TimesTablePanel({ question, submitAnswer, visual }: TimesTablePanelProps) {
+  return (
+    <ChoiceQuestionPanel
+      options={question.options}
+      prompt={question.prompt}
+      submitAnswer={(choice) => submitAnswer(isSummerHomeworkChoiceCorrect(question, choice))}
+      visual={visual}
+    />
+  );
+}
+
+interface ChoiceQuestionPanelProps {
+  options: string[];
+  prompt: string;
+  submitAnswer: (choice: string) => void;
+  visual: GameVisualConfig;
+}
+
+function ChoiceQuestionPanel({ options, prompt, submitAnswer, visual }: ChoiceQuestionPanelProps) {
+  return (
+    <div className="space-y-5">
+      <div className={cn("rounded-lg border p-5 text-center", visual.softPanel, visual.softBorder)}>
+        <div className={cn("text-sm font-semibold", visual.text)}>选择正确答案</div>
+        <div className="mt-3 text-4xl font-bold leading-tight text-slate-950 sm:text-5xl">
+          {prompt}
+        </div>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {options.map((option) => (
+          <Button
+            key={option}
+            variant="outline"
+            className={cn(
+              "h-auto min-h-14 whitespace-normal bg-white px-3 py-3 text-center text-lg leading-snug",
+              visual.outlineHover,
+            )}
+            onClick={() => submitAnswer(option)}
+          >
+            {option}
+          </Button>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 interface MakeTenPanelProps {

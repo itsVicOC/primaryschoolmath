@@ -1,6 +1,20 @@
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
-export type GameKey = "arithmetic" | "make-ten" | "place-value" | "compare";
+export const GAME_KEYS = [
+  "arithmetic",
+  "make-ten",
+  "place-value",
+  "compare",
+  "column-arithmetic",
+  "multiplication-groups",
+  "times-table",
+] as const;
+
+export type GameKey = (typeof GAME_KEYS)[number];
+
+export function isGameKey(value: string): value is GameKey {
+  return GAME_KEYS.includes(value as GameKey);
+}
 
 export interface LeaderboardEntry {
   id: string;
@@ -28,6 +42,8 @@ export interface LeaderboardResult {
 const SUPABASE_MISSING_MESSAGE = "未配置 Supabase，排行榜暂不可用。";
 const SCORE_SCHEMA_MISSING_MESSAGE =
   "排行榜数据库还未升级，请先执行 supabase/migrations/20260630_multi_game_scores.sql。";
+const SCORE_GAME_KEY_MISSING_MESSAGE =
+  "排行榜数据库还未支持暑假作业小游戏，请先执行 supabase/migrations/20260630_summer_homework_games.sql。";
 
 export interface ScoreRow {
   score_id: string;
@@ -52,6 +68,10 @@ export function mapScoreRow(row: ScoreRow): LeaderboardEntry {
 }
 
 export function formatScoreErrorMessage(message: string): string {
+  if (message.includes("scores_score_game_key_check")) {
+    return SCORE_GAME_KEY_MISSING_MESSAGE;
+  }
+
   if (message.includes("score_game_key")) {
     return SCORE_SCHEMA_MISSING_MESSAGE;
   }

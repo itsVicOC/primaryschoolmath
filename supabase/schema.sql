@@ -3,7 +3,15 @@ create extension if not exists pgcrypto;
 create table if not exists public.scores (
   score_id uuid primary key default gen_random_uuid(),
   score_game_key text not null default 'arithmetic' check (
-    score_game_key in ('arithmetic', 'make-ten', 'place-value', 'compare')
+    score_game_key in (
+      'arithmetic',
+      'make-ten',
+      'place-value',
+      'compare',
+      'column-arithmetic',
+      'multiplication-groups',
+      'times-table'
+    )
   ),
   score_player_id text not null check (char_length(trim(score_player_id)) between 1 and 24),
   score_correct_count integer not null check (score_correct_count between 0 and 100),
@@ -29,7 +37,15 @@ create policy "anyone can insert scores"
   for insert
   to anon, authenticated
   with check (
-    score_game_key in ('arithmetic', 'make-ten', 'place-value', 'compare')
+    score_game_key in (
+      'arithmetic',
+      'make-ten',
+      'place-value',
+      'compare',
+      'column-arithmetic',
+      'multiplication-groups',
+      'times-table'
+    )
     and char_length(trim(score_player_id)) between 1 and 24
     and score_correct_count between 0 and 100
     and score_total_questions between 1 and 100

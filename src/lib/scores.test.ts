@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatScoreErrorMessage, mapScoreRow } from "./scores";
+import { formatScoreErrorMessage, GAME_KEYS, mapScoreRow } from "./scores";
 
 describe("score row mapping", () => {
   it("maps Supabase score rows into leaderboard entries with game keys", () => {
@@ -29,5 +29,23 @@ describe("score row mapping", () => {
     expect(formatScoreErrorMessage("column scores.score_game_key does not exist")).toBe(
       "排行榜数据库还未升级，请先执行 supabase/migrations/20260630_multi_game_scores.sql。",
     );
+  });
+
+  it("explains when the summer homework game key migration is missing", () => {
+    expect(formatScoreErrorMessage("violates check constraint scores_score_game_key_check")).toBe(
+      "排行榜数据库还未支持暑假作业小游戏，请先执行 supabase/migrations/20260630_summer_homework_games.sql。",
+    );
+  });
+
+  it("includes all deployed game keys", () => {
+    expect(GAME_KEYS).toEqual([
+      "arithmetic",
+      "make-ten",
+      "place-value",
+      "compare",
+      "column-arithmetic",
+      "multiplication-groups",
+      "times-table",
+    ]);
   });
 });
