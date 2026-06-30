@@ -20,7 +20,7 @@ import {
 import { FormEvent, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, type ButtonProps } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -86,6 +86,8 @@ import { cn } from "@/lib/utils";
 type Page = "home" | GameKey;
 type PracticePhase = "ready" | "playing" | "finished";
 type FinishReason = "completed" | "timeout";
+
+const ANSWER_SUBMIT_LOCK_MS = 350;
 
 interface GameResult {
   score: number;
@@ -754,6 +756,8 @@ function MiniGamePractice({ gameKey }: { gameKey: MiniGameKey }) {
   const [selectedTrainIndexes, setSelectedTrainIndexes] = useState<number[]>([]);
   const [placeTens, setPlaceTens] = useState(0);
   const [placeOnes, setPlaceOnes] = useState(0);
+  const answerLockedRef = useRef(false);
+  const answerUnlockTimerRef = useRef<number | null>(null);
 
   const currentQuestion = questions[currentIndex];
   const remainingSeconds = Math.max(0, MINI_GAME_DURATION_SECONDS - elapsedSeconds);
@@ -784,6 +788,30 @@ function MiniGamePractice({ gameKey }: { gameKey: MiniGameKey }) {
     setPlaceTens(0);
     setPlaceOnes(0);
   }, []);
+
+  const clearAnswerLock = useCallback(() => {
+    answerLockedRef.current = false;
+
+    if (answerUnlockTimerRef.current !== null) {
+      window.clearTimeout(answerUnlockTimerRef.current);
+      answerUnlockTimerRef.current = null;
+    }
+  }, []);
+
+  const lockAnswerSubmission = useCallback(() => {
+    answerLockedRef.current = true;
+
+    if (answerUnlockTimerRef.current !== null) {
+      window.clearTimeout(answerUnlockTimerRef.current);
+    }
+
+    answerUnlockTimerRef.current = window.setTimeout(() => {
+      answerLockedRef.current = false;
+      answerUnlockTimerRef.current = null;
+    }, ANSWER_SUBMIT_LOCK_MS);
+  }, []);
+
+  useEffect(() => clearAnswerLock, [clearAnswerLock]);
 
   const finishGame = useCallback(
     (reason: FinishReason, finalScore = scoreRef.current) => {
@@ -838,6 +866,7 @@ function MiniGamePractice({ gameKey }: { gameKey: MiniGameKey }) {
     setAnsweredCount(0);
     setScore(0);
     scoreRef.current = 0;
+    clearAnswerLock();
     resetQuestionState();
     setPhase("playing");
   };
@@ -854,13 +883,16 @@ function MiniGamePractice({ gameKey }: { gameKey: MiniGameKey }) {
     startedAtRef.current = null;
     setElapsedSeconds(0);
     setResult(null);
+    clearAnswerLock();
     resetQuestionState();
   };
 
   const submitMiniGameAnswer = (isCorrect: boolean) => {
-    if (phaseRef.current !== "playing") {
+    if (phaseRef.current !== "playing" || answerLockedRef.current) {
       return;
     }
+
+    lockAnswerSubmission();
 
     const nextScore = scoreRef.current + (isCorrect ? 1 : 0);
     const nextAnsweredCount = answeredCount + 1;
@@ -918,6 +950,7 @@ function MiniGamePractice({ gameKey }: { gameKey: MiniGameKey }) {
             <div className={cn("text-sm font-semibold", visual.text)}>当前 {score} 分</div>
           </div>
           <MiniGameQuestionPanel
+            key={currentQuestion.id}
             question={currentQuestion}
             placeOnes={placeOnes}
             placeTens={placeTens}
@@ -970,6 +1003,8 @@ function SummerHomeworkPractice({ gameKey }: { gameKey: SummerHomeworkGameKey })
   const [columnAnswer, setColumnAnswer] = useState<ColumnArithmeticAnswer>(
     createEmptyColumnArithmeticAnswer,
   );
+  const answerLockedRef = useRef(false);
+  const answerUnlockTimerRef = useRef<number | null>(null);
 
   const currentQuestion = questions[currentIndex];
   const remainingSeconds = Math.max(0, durationSeconds - elapsedSeconds);
@@ -998,6 +1033,30 @@ function SummerHomeworkPractice({ gameKey }: { gameKey: SummerHomeworkGameKey })
   const resetQuestionState = useCallback(() => {
     setColumnAnswer(createEmptyColumnArithmeticAnswer());
   }, []);
+
+  const clearAnswerLock = useCallback(() => {
+    answerLockedRef.current = false;
+
+    if (answerUnlockTimerRef.current !== null) {
+      window.clearTimeout(answerUnlockTimerRef.current);
+      answerUnlockTimerRef.current = null;
+    }
+  }, []);
+
+  const lockAnswerSubmission = useCallback(() => {
+    answerLockedRef.current = true;
+
+    if (answerUnlockTimerRef.current !== null) {
+      window.clearTimeout(answerUnlockTimerRef.current);
+    }
+
+    answerUnlockTimerRef.current = window.setTimeout(() => {
+      answerLockedRef.current = false;
+      answerUnlockTimerRef.current = null;
+    }, ANSWER_SUBMIT_LOCK_MS);
+  }, []);
+
+  useEffect(() => clearAnswerLock, [clearAnswerLock]);
 
   const finishGame = useCallback(
     (reason: FinishReason, finalScore = scoreRef.current) => {
@@ -1049,6 +1108,7 @@ function SummerHomeworkPractice({ gameKey }: { gameKey: SummerHomeworkGameKey })
     setAnsweredCount(0);
     setScore(0);
     scoreRef.current = 0;
+    clearAnswerLock();
     resetQuestionState();
     setPhase("playing");
   };
@@ -1065,13 +1125,16 @@ function SummerHomeworkPractice({ gameKey }: { gameKey: SummerHomeworkGameKey })
     startedAtRef.current = null;
     setElapsedSeconds(0);
     setResult(null);
+    clearAnswerLock();
     resetQuestionState();
   };
 
   const submitSummerAnswer = (isCorrect: boolean) => {
-    if (phaseRef.current !== "playing") {
+    if (phaseRef.current !== "playing" || answerLockedRef.current) {
       return;
     }
+
+    lockAnswerSubmission();
 
     const nextScore = scoreRef.current + (isCorrect ? 1 : 0);
     const nextAnsweredCount = answeredCount + 1;
@@ -1131,6 +1194,7 @@ function SummerHomeworkPractice({ gameKey }: { gameKey: SummerHomeworkGameKey })
             <div className={cn("text-sm font-semibold", visual.text)}>当前 {score} 分</div>
           </div>
           <SummerHomeworkQuestionPanel
+            key={currentQuestion.id}
             columnAnswer={columnAnswer}
             question={currentQuestion}
             setColumnAnswer={setColumnAnswer}
@@ -1295,6 +1359,54 @@ function ReadyPanel({ onStart, stats, visual }: ReadyPanelProps) {
         开始答题
       </Button>
     </CardContent>
+  );
+}
+
+interface GuardedButtonProps extends Omit<ButtonProps, "onClick"> {
+  guardKey: string;
+  onGuardedClick: (event: React.MouseEvent<HTMLButtonElement>) => void;
+}
+
+function GuardedButton({
+  guardKey,
+  onGuardedClick,
+  onMouseDown,
+  onPointerDown,
+  onTouchStart,
+  ...props
+}: GuardedButtonProps) {
+  const armedGuardKeyRef = useRef<string | null>(null);
+  const armCurrentButton = () => {
+    armedGuardKeyRef.current = guardKey;
+  };
+
+  return (
+    <Button
+      {...props}
+      onMouseDown={(event) => {
+        armCurrentButton();
+        onMouseDown?.(event);
+      }}
+      onPointerDown={(event) => {
+        armCurrentButton();
+        onPointerDown?.(event);
+      }}
+      onTouchStart={(event) => {
+        armCurrentButton();
+        onTouchStart?.(event);
+      }}
+      onClick={(event) => {
+        const wasArmedByCurrentPress = armedGuardKeyRef.current === guardKey;
+        const isKeyboardClick = event.detail === 0;
+
+        armedGuardKeyRef.current = null;
+        event.currentTarget.blur();
+
+        if (wasArmedByCurrentPress || isKeyboardClick) {
+          onGuardedClick(event);
+        }
+      }}
+    />
   );
 }
 
@@ -1518,14 +1630,16 @@ function ColumnArithmeticPanel({
         </div>
       </div>
 
-      <Button
+      <GuardedButton
+        guardKey={`${question.id}:submit`}
+        type="button"
         size="lg"
         className={cn("w-full", visual.primaryButton)}
-        onClick={() => submitAnswer(isColumnArithmeticAnswerCorrect(question, answer))}
+        onGuardedClick={() => submitAnswer(isColumnArithmeticAnswerCorrect(question, answer))}
       >
         <CheckCircle2 className="h-5 w-5" />
         提交
-      </Button>
+      </GuardedButton>
     </div>
   );
 }
@@ -1605,6 +1719,7 @@ function MultiplicationGroupsPanel({
       </div>
 
       <ChoiceQuestionPanel
+        guardKeyPrefix={question.id}
         options={question.options}
         prompt={question.prompt}
         submitAnswer={(choice) => submitAnswer(isSummerHomeworkChoiceCorrect(question, choice))}
@@ -1623,6 +1738,7 @@ interface TimesTablePanelProps {
 function TimesTablePanel({ question, submitAnswer, visual }: TimesTablePanelProps) {
   return (
     <ChoiceQuestionPanel
+      guardKeyPrefix={question.id}
       options={question.options}
       prompt={question.prompt}
       submitAnswer={(choice) => submitAnswer(isSummerHomeworkChoiceCorrect(question, choice))}
@@ -1632,13 +1748,20 @@ function TimesTablePanel({ question, submitAnswer, visual }: TimesTablePanelProp
 }
 
 interface ChoiceQuestionPanelProps {
+  guardKeyPrefix: string;
   options: string[];
   prompt: string;
   submitAnswer: (choice: string) => void;
   visual: GameVisualConfig;
 }
 
-function ChoiceQuestionPanel({ options, prompt, submitAnswer, visual }: ChoiceQuestionPanelProps) {
+function ChoiceQuestionPanel({
+  guardKeyPrefix,
+  options,
+  prompt,
+  submitAnswer,
+  visual,
+}: ChoiceQuestionPanelProps) {
   return (
     <div className="space-y-5">
       <div className={cn("rounded-lg border p-5 text-center", visual.softPanel, visual.softBorder)}>
@@ -1649,17 +1772,21 @@ function ChoiceQuestionPanel({ options, prompt, submitAnswer, visual }: ChoiceQu
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         {options.map((option) => (
-          <Button
+          <GuardedButton
             key={option}
+            guardKey={`${guardKeyPrefix}:${option}`}
+            type="button"
             variant="outline"
             className={cn(
               "h-auto min-h-14 whitespace-normal bg-white px-3 py-3 text-center text-lg leading-snug",
               visual.outlineHover,
             )}
-            onClick={() => submitAnswer(option)}
+            onGuardedClick={() => {
+              submitAnswer(option);
+            }}
           >
             {option}
-          </Button>
+          </GuardedButton>
         ))}
       </div>
     </div>
@@ -1720,15 +1847,17 @@ function MakeTenPanel({
           })}
         </div>
       </div>
-      <Button
+      <GuardedButton
+        guardKey={`${question.id}:submit`}
+        type="button"
         size="lg"
         className={cn("w-full", visual.primaryButton)}
         disabled={selectedIndexes.length !== 2}
-        onClick={() => submitAnswer(isMakeTenSelectionCorrect(question, selectedIndexes))}
+        onGuardedClick={() => submitAnswer(isMakeTenSelectionCorrect(question, selectedIndexes))}
       >
         <CheckCircle2 className="h-5 w-5" />
         提交
-      </Button>
+      </GuardedButton>
     </div>
   );
 }
@@ -1788,14 +1917,16 @@ function PlaceValuePanel({
         </div>
       </div>
 
-      <Button
+      <GuardedButton
+        guardKey={`${question.id}:submit`}
+        type="button"
         size="lg"
         className={cn("w-full", visual.primaryButton)}
-        onClick={() => submitAnswer(isPlaceValueAnswerCorrect(question, tens, ones))}
+        onGuardedClick={() => submitAnswer(isPlaceValueAnswerCorrect(question, tens, ones))}
       >
         <CheckCircle2 className="h-5 w-5" />
         提交
-      </Button>
+      </GuardedButton>
     </div>
   );
 }
@@ -1894,14 +2025,18 @@ function ComparePanel({ question, submitAnswer, visual }: ComparePanelProps) {
       </div>
       <div className="grid grid-cols-3 gap-3">
         {choices.map((choice) => (
-          <Button
+          <GuardedButton
             key={choice}
+            guardKey={`${question.id}:${choice}`}
+            type="button"
             variant="outline"
             className={cn("h-20 bg-white text-4xl font-bold", visual.outlineHover)}
-            onClick={() => submitAnswer(isCompareChoiceCorrect(question, choice))}
+            onGuardedClick={() => {
+              submitAnswer(isCompareChoiceCorrect(question, choice));
+            }}
           >
             {choice}
-          </Button>
+          </GuardedButton>
         ))}
       </div>
     </div>
