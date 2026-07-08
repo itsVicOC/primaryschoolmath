@@ -1,18 +1,23 @@
 import {
   ArrowLeft,
   Blocks,
+  BookOpen,
+  Brain,
   Calculator,
   CheckCircle2,
   ChevronRight,
   Clock3,
   Home,
+  Lightbulb,
   Loader2,
   Minus,
+  PencilLine,
   Play,
   Plus,
   RotateCcw,
   Scale,
   Send,
+  Shuffle,
   TrainFront,
   Trophy,
   type LucideIcon,
@@ -74,6 +79,23 @@ import {
   type TimesTableQuestion,
 } from "@/features/summer-homework/summerHomeworkGames";
 import {
+  generateStrategyGameSet,
+  isStrategyAnswerCorrect,
+  isStrategyGameKey,
+  STRATEGY_GAME_DURATION_SECONDS,
+  STRATEGY_GAME_TOTAL_QUESTIONS,
+  type StrategyAnswer,
+  type StrategyGameKey,
+  type StrategyGameSet,
+  type StrategyQuestion,
+} from "@/features/strategy-games/strategyGames";
+import {
+  generateKeywordCard,
+  KEYWORD_CARD_HELP,
+  WORD_PROBLEM_KEYWORDS,
+  type KeywordCard,
+} from "@/features/word-problem-keywords/keywordCards";
+import {
   fetchLeaderboard,
   isGameKey,
   submitScore,
@@ -83,7 +105,9 @@ import {
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 
-type Page = "home" | GameKey;
+type CreativeActivityKey = "word-problem-keywords";
+type ActivityKey = GameKey | CreativeActivityKey;
+type Page = "home" | ActivityKey;
 type PracticePhase = "ready" | "playing" | "finished";
 type FinishReason = "completed" | "timeout";
 
@@ -96,7 +120,7 @@ interface GameResult {
 }
 
 interface GameCardConfig {
-  key: GameKey;
+  key: ActivityKey;
   title: string;
   grade: string;
   status: string;
@@ -156,6 +180,42 @@ const gameCards: GameCardConfig[] = [
     icon: Scale,
   },
   {
+    key: "make-ten-strategy",
+    title: "凑十拆步",
+    grade: "小学一年级",
+    status: "已开放",
+    description: "把进位加法拆成 10",
+    details: "12 题 / 4 分钟",
+    icon: Brain,
+  },
+  {
+    key: "break-ten-strategy",
+    title: "破十拆步",
+    grade: "小学一年级",
+    status: "已开放",
+    description: "先减到 10 再继续减",
+    details: "12 题 / 4 分钟",
+    icon: Lightbulb,
+  },
+  {
+    key: "balance-ten-strategy",
+    title: "平十补回",
+    grade: "小学一年级",
+    status: "已开放",
+    description: "先减 10 再把多减的补回",
+    details: "12 题 / 4 分钟",
+    icon: BookOpen,
+  },
+  {
+    key: "word-problem-keywords",
+    title: "关键词编题",
+    grade: "自由创编",
+    status: "不计分",
+    description: "抽关键词卡片编应用题",
+    details: "开放活动 / 不限时",
+    icon: PencilLine,
+  },
+  {
     key: "column-arithmetic",
     title: "竖式工坊",
     grade: "一年级暑假",
@@ -184,7 +244,7 @@ const gameCards: GameCardConfig[] = [
   },
 ];
 
-const gameVisuals: Record<GameKey, GameVisualConfig> = {
+const gameVisuals: Record<ActivityKey, GameVisualConfig> = {
   arithmetic: {
     badgeVariant: "success",
     border: "border-emerald-200",
@@ -232,6 +292,54 @@ const gameVisuals: Record<GameKey, GameVisualConfig> = {
     text: "text-lime-700",
     primaryButton: "bg-lime-700 text-white hover:bg-lime-800",
     outlineHover: "hover:border-lime-300 hover:bg-lime-50 hover:text-lime-800",
+  },
+  "make-ten-strategy": {
+    badgeVariant: "warm",
+    border: "border-yellow-200",
+    accentBar: "bg-yellow-500",
+    iconWrap: "bg-yellow-100",
+    iconText: "text-yellow-700",
+    softPanel: "bg-yellow-50",
+    softBorder: "border-yellow-100",
+    text: "text-yellow-700",
+    primaryButton: "bg-yellow-600 text-white hover:bg-yellow-700",
+    outlineHover: "hover:border-yellow-300 hover:bg-yellow-50 hover:text-yellow-800",
+  },
+  "break-ten-strategy": {
+    badgeVariant: "cool",
+    border: "border-indigo-200",
+    accentBar: "bg-indigo-500",
+    iconWrap: "bg-indigo-100",
+    iconText: "text-indigo-700",
+    softPanel: "bg-indigo-50",
+    softBorder: "border-indigo-100",
+    text: "text-indigo-700",
+    primaryButton: "bg-indigo-600 text-white hover:bg-indigo-700",
+    outlineHover: "hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-800",
+  },
+  "balance-ten-strategy": {
+    badgeVariant: "fresh",
+    border: "border-green-200",
+    accentBar: "bg-green-500",
+    iconWrap: "bg-green-100",
+    iconText: "text-green-700",
+    softPanel: "bg-green-50",
+    softBorder: "border-green-100",
+    text: "text-green-700",
+    primaryButton: "bg-green-700 text-white hover:bg-green-800",
+    outlineHover: "hover:border-green-300 hover:bg-green-50 hover:text-green-800",
+  },
+  "word-problem-keywords": {
+    badgeVariant: "cool",
+    border: "border-teal-200",
+    accentBar: "bg-teal-500",
+    iconWrap: "bg-teal-100",
+    iconText: "text-teal-700",
+    softPanel: "bg-teal-50",
+    softBorder: "border-teal-100",
+    text: "text-teal-700",
+    primaryButton: "bg-teal-700 text-white hover:bg-teal-800",
+    outlineHover: "hover:border-teal-300 hover:bg-teal-50 hover:text-teal-800",
   },
   "column-arithmetic": {
     badgeVariant: "secondary",
@@ -321,10 +429,45 @@ const summerHomeworkConfigs = {
   }
 >;
 
+const strategyGameConfigs = {
+  "make-ten-strategy": {
+    title: "凑十拆步",
+    description: "把第二个加数拆开，先和第一个数凑成 10，再加剩下的数。",
+    icon: Brain,
+  },
+  "break-ten-strategy": {
+    title: "破十拆步",
+    description: "把减数拆成两步，先减到 10，再继续减剩下的数。",
+    icon: Lightbulb,
+  },
+  "balance-ten-strategy": {
+    title: "平十补回",
+    description: "先减 10，再把多减掉的 1 或 2 补回来。",
+    icon: BookOpen,
+  },
+} satisfies Record<
+  StrategyGameKey,
+  {
+    title: string;
+    description: string;
+    icon: LucideIcon;
+  }
+>;
+
+const keywordActivityConfig = {
+  title: "关键词编题",
+  description: "抽一张关键词卡片，编一道有数量、有问题的应用题。",
+  icon: PencilLine,
+};
+
 function getPageFromHash(): Page {
   const page = window.location.hash.replace(/^#\/?/, "");
 
   if (isGameKey(page)) {
+    return page;
+  }
+
+  if (page === "word-problem-keywords") {
     return page;
   }
 
@@ -365,8 +508,16 @@ function App() {
     return <MiniGamePractice key={page} gameKey={page} />;
   }
 
+  if (isStrategyGameKey(page)) {
+    return <StrategyPractice key={page} gameKey={page} />;
+  }
+
   if (isSummerHomeworkGameKey(page)) {
     return <SummerHomeworkPractice key={page} gameKey={page} />;
+  }
+
+  if (page === "word-problem-keywords") {
+    return <KeywordCreativePractice />;
   }
 
   return <HomePage />;
@@ -977,6 +1128,308 @@ function MiniGamePractice({ gameKey }: { gameKey: MiniGameKey }) {
   );
 }
 
+interface StrategyAnswerDraft {
+  bridgeToTen: string;
+  remaining: string;
+  toTen: string;
+  compensation: string;
+  result: string;
+}
+
+function createEmptyStrategyAnswerDraft(): StrategyAnswerDraft {
+  return {
+    bridgeToTen: "",
+    remaining: "",
+    toTen: "",
+    compensation: "",
+    result: "",
+  };
+}
+
+function makeStrategyAnswer(
+  question: StrategyQuestion,
+  answer: StrategyAnswerDraft,
+): StrategyAnswer {
+  if (question.kind === "make-ten-strategy") {
+    return {
+      bridgeToTen: answer.bridgeToTen,
+      remaining: answer.remaining,
+      result: answer.result,
+    };
+  }
+
+  if (question.kind === "break-ten-strategy") {
+    return {
+      toTen: answer.toTen,
+      remaining: answer.remaining,
+      result: answer.result,
+    };
+  }
+
+  return {
+    compensation: answer.compensation,
+    result: answer.result,
+  };
+}
+
+function isStrategyDraftComplete(question: StrategyQuestion, answer: StrategyAnswerDraft): boolean {
+  if (question.kind === "make-ten-strategy") {
+    return answer.bridgeToTen !== "" && answer.remaining !== "" && answer.result !== "";
+  }
+
+  if (question.kind === "break-ten-strategy") {
+    return answer.toTen !== "" && answer.remaining !== "" && answer.result !== "";
+  }
+
+  return answer.compensation !== "" && answer.result !== "";
+}
+
+function sanitizeStrategyNumberInput(value: string): string {
+  return value.replace(/\D/g, "").slice(0, 2);
+}
+
+function StrategyPractice({ gameKey }: { gameKey: StrategyGameKey }) {
+  const config = strategyGameConfigs[gameKey];
+  const Icon = config.icon;
+  const visual = gameVisuals[gameKey];
+  const [practiceSet, setPracticeSet] = useState<StrategyGameSet>(() =>
+    generateStrategyGameSet(gameKey),
+  );
+  const questions = practiceSet.questions;
+  const [phase, setPhase] = useState<PracticePhase>("ready");
+  const phaseRef = useRef<PracticePhase>(phase);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [answeredCount, setAnsweredCount] = useState(0);
+  const [score, setScore] = useState(0);
+  const scoreRef = useRef(0);
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const startedAtRef = useRef<number | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [result, setResult] = useState<GameResult | null>(null);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [leaderboardMessage, setLeaderboardMessage] = useState<string | undefined>();
+  const [leaderboardLoading, setLeaderboardLoading] = useState(false);
+  const [strategyAnswer, setStrategyAnswer] = useState<StrategyAnswerDraft>(
+    createEmptyStrategyAnswerDraft,
+  );
+  const answerLockedRef = useRef(false);
+  const answerUnlockTimerRef = useRef<number | null>(null);
+
+  const currentQuestion = questions[currentIndex];
+  const remainingSeconds = Math.max(0, STRATEGY_GAME_DURATION_SECONDS - elapsedSeconds);
+  const progressValue = Math.round((answeredCount / Math.max(questions.length, 1)) * 100);
+
+  const loadLeaderboard = useCallback(async () => {
+    setLeaderboardLoading(true);
+    const result = await fetchLeaderboard(gameKey, 10);
+    setLeaderboard(result.entries);
+    setLeaderboardMessage(result.message);
+    setLeaderboardLoading(false);
+  }, [gameKey]);
+
+  useEffect(() => {
+    phaseRef.current = phase;
+  }, [phase]);
+
+  useEffect(() => {
+    scoreRef.current = score;
+  }, [score]);
+
+  useEffect(() => {
+    loadLeaderboard();
+  }, [loadLeaderboard]);
+
+  const resetQuestionState = useCallback(() => {
+    setStrategyAnswer(createEmptyStrategyAnswerDraft());
+  }, []);
+
+  const clearAnswerLock = useCallback(() => {
+    answerLockedRef.current = false;
+
+    if (answerUnlockTimerRef.current !== null) {
+      window.clearTimeout(answerUnlockTimerRef.current);
+      answerUnlockTimerRef.current = null;
+    }
+  }, []);
+
+  const lockAnswerSubmission = useCallback(() => {
+    answerLockedRef.current = true;
+
+    if (answerUnlockTimerRef.current !== null) {
+      window.clearTimeout(answerUnlockTimerRef.current);
+    }
+
+    answerUnlockTimerRef.current = window.setTimeout(() => {
+      answerLockedRef.current = false;
+      answerUnlockTimerRef.current = null;
+    }, ANSWER_SUBMIT_LOCK_MS);
+  }, []);
+
+  useEffect(() => clearAnswerLock, [clearAnswerLock]);
+
+  const finishGame = useCallback(
+    (reason: FinishReason, finalScore = scoreRef.current) => {
+      if (phaseRef.current !== "playing") {
+        return;
+      }
+
+      const now = Date.now();
+      const started = startedAtRef.current ?? now;
+      const durationSeconds =
+        reason === "timeout"
+          ? STRATEGY_GAME_DURATION_SECONDS
+          : Math.min(
+              STRATEGY_GAME_DURATION_SECONDS,
+              Math.max(0, Math.ceil((now - started) / 1000)),
+            );
+
+      setElapsedSeconds(durationSeconds);
+      phaseRef.current = "finished";
+      setResult({ score: finalScore, durationSeconds, reason });
+      setPhase("finished");
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (phase !== "playing" || !startedAt) {
+      return;
+    }
+
+    const tick = () => {
+      const nextElapsed = Math.min(
+        STRATEGY_GAME_DURATION_SECONDS,
+        Math.floor((Date.now() - startedAt) / 1000),
+      );
+      setElapsedSeconds(nextElapsed);
+
+      if (nextElapsed >= STRATEGY_GAME_DURATION_SECONDS) {
+        finishGame("timeout");
+      }
+    };
+
+    tick();
+    const timerId = window.setInterval(tick, 250);
+    return () => window.clearInterval(timerId);
+  }, [finishGame, phase, startedAt]);
+
+  const startPractice = () => {
+    const now = Date.now();
+
+    startedAtRef.current = now;
+    setStartedAt(now);
+    setElapsedSeconds(0);
+    setCurrentIndex(0);
+    setAnsweredCount(0);
+    setScore(0);
+    scoreRef.current = 0;
+    clearAnswerLock();
+    resetQuestionState();
+    setPhase("playing");
+  };
+
+  const resetPractice = () => {
+    setPracticeSet(generateStrategyGameSet(gameKey));
+    setPhase("ready");
+    phaseRef.current = "ready";
+    setCurrentIndex(0);
+    setAnsweredCount(0);
+    setScore(0);
+    scoreRef.current = 0;
+    setStartedAt(null);
+    startedAtRef.current = null;
+    setElapsedSeconds(0);
+    setResult(null);
+    clearAnswerLock();
+    resetQuestionState();
+  };
+
+  const submitStrategyAnswer = (isCorrect: boolean) => {
+    if (phaseRef.current !== "playing" || answerLockedRef.current) {
+      return;
+    }
+
+    lockAnswerSubmission();
+
+    const nextScore = scoreRef.current + (isCorrect ? 1 : 0);
+    const nextAnsweredCount = answeredCount + 1;
+
+    setScore(nextScore);
+    scoreRef.current = nextScore;
+    setAnsweredCount(nextAnsweredCount);
+
+    if (currentIndex >= questions.length - 1) {
+      finishGame("completed", nextScore);
+      return;
+    }
+
+    setCurrentIndex((index) => index + 1);
+    resetQuestionState();
+  };
+
+  return (
+    <PracticeLayout
+      badge="小学一年级"
+      description={config.description}
+      gameKey={gameKey}
+      icon={Icon}
+      leaderboard={leaderboard}
+      leaderboardLoading={leaderboardLoading}
+      leaderboardMessage={leaderboardMessage}
+      title={config.title}
+    >
+      <PracticeCardHeader
+        current={`${answeredCount}/${STRATEGY_GAME_TOTAL_QUESTIONS}`}
+        durationLabel={formatDuration(remainingSeconds)}
+        icon={Icon}
+        progressValue={progressValue}
+        title={config.title}
+        description={`${config.description} 每局 12 题，限时 4 分钟。`}
+        visual={visual}
+      />
+
+      {phase === "ready" ? (
+        <ReadyPanel
+          onStart={startPractice}
+          stats={[
+            { label: "题量", value: `${STRATEGY_GAME_TOTAL_QUESTIONS}` },
+            { label: "限时", value: "4:00" },
+            { label: "当前", value: `${score} 分` },
+          ]}
+          visual={visual}
+        />
+      ) : null}
+
+      {phase === "playing" && currentQuestion ? (
+        <CardContent className="space-y-6 p-5 sm:p-8">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Badge variant={visual.badgeVariant}>第 {currentIndex + 1} 题</Badge>
+            <div className={cn("text-sm font-semibold", visual.text)}>当前 {score} 分</div>
+          </div>
+          <StrategyQuestionPanel
+            key={currentQuestion.id}
+            answer={strategyAnswer}
+            question={currentQuestion}
+            setAnswer={setStrategyAnswer}
+            submitAnswer={submitStrategyAnswer}
+            visual={visual}
+          />
+        </CardContent>
+      ) : null}
+
+      {phase === "finished" && result ? (
+        <FinishPanel
+          gameKey={gameKey}
+          onLeaderboardRefresh={loadLeaderboard}
+          onPracticeAgain={resetPractice}
+          result={result}
+          totalQuestions={STRATEGY_GAME_TOTAL_QUESTIONS}
+        />
+      ) : null}
+    </PracticeLayout>
+  );
+}
+
 function SummerHomeworkPractice({ gameKey }: { gameKey: SummerHomeworkGameKey }) {
   const config = summerHomeworkConfigs[gameKey];
   const Icon = config.icon;
@@ -1214,6 +1667,196 @@ function SummerHomeworkPractice({ gameKey }: { gameKey: SummerHomeworkGameKey })
         />
       ) : null}
     </PracticeLayout>
+  );
+}
+
+function KeywordCreativePractice() {
+  const visual = gameVisuals["word-problem-keywords"];
+  const Icon = keywordActivityConfig.icon;
+  const [cardIndex, setCardIndex] = useState(0);
+  const [card, setCard] = useState<KeywordCard>(() => generateKeywordCard(0));
+  const [storyText, setStoryText] = useState("");
+  const [showReview, setShowReview] = useState(false);
+
+  const nextCard = () => {
+    const nextIndex = cardIndex + 1;
+
+    setCard(generateKeywordCard(nextIndex, card.keyword));
+    setCardIndex(nextIndex);
+    setStoryText("");
+    setShowReview(false);
+  };
+
+  return (
+    <div className="min-h-screen bg-[#f6f8fb]">
+      <SiteHeader />
+      <main className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-6 sm:px-6 sm:py-8 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <section className="space-y-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Button
+              variant="ghost"
+              className="text-slate-700 hover:bg-white hover:text-slate-950"
+              onClick={() => navigateTo("home")}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              返回首页
+            </Button>
+            <Badge variant={visual.badgeVariant}>自由创编 / 不计分</Badge>
+          </div>
+
+          <Card className={cn("overflow-hidden bg-white shadow-soft", visual.border)}>
+            <div className={cn("h-1 w-full", visual.accentBar)} />
+            <CardHeader className="border-b bg-white">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex min-w-0 gap-3">
+                  <div
+                    className={cn(
+                      "flex h-11 w-11 shrink-0 items-center justify-center rounded-lg",
+                      visual.iconWrap,
+                      visual.iconText,
+                    )}
+                  >
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 space-y-2">
+                    <CardTitle className="text-2xl leading-tight [word-break:keep-all] sm:text-3xl">
+                      {keywordActivityConfig.title}
+                    </CardTitle>
+                    <CardDescription className="leading-6">
+                      {keywordActivityConfig.description}
+                    </CardDescription>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-sm sm:w-56">
+                  <StatPill icon={PencilLine} label="模式" value="创编" visual={visual} />
+                  <StatPill icon={BookOpen} label="卡片" value={`第 ${cardIndex + 1} 张`} visual={visual} />
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardContent className="space-y-6 p-5 sm:p-8">
+              <div className={cn("rounded-lg border p-5", visual.softPanel, visual.softBorder)}>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <Badge variant={visual.badgeVariant}>{card.keyword}</Badge>
+                  <div className={cn("text-sm font-semibold", visual.text)}>{card.scenario}</div>
+                </div>
+                <div className="mt-5 flex flex-wrap gap-3">
+                  {card.numbers.map((number, index) => (
+                    <div
+                      key={`${card.id}-number-${index}`}
+                      className="flex h-14 min-w-16 items-center justify-center rounded-lg border bg-white px-4 text-3xl font-bold text-slate-950"
+                    >
+                      {number}
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-5 text-lg font-semibold leading-7 text-slate-950">
+                  {card.prompt}
+                </div>
+                <div className="mt-4 rounded-lg border bg-white p-3 text-sm leading-6 text-slate-700">
+                  <span className={cn("font-semibold", visual.text)}>句式提示：</span>
+                  {card.sentencePattern}
+                </div>
+              </div>
+
+              <label className="block space-y-2">
+                <span className={cn("text-sm font-semibold", visual.text)}>我的应用题</span>
+                <textarea
+                  className="min-h-36 w-full resize-y rounded-lg border bg-white px-4 py-3 text-base leading-7 text-slate-950 outline-none transition-colors placeholder:text-slate-400 focus:border-teal-400 focus:ring-2 focus:ring-teal-100"
+                  value={storyText}
+                  onChange={(event) => {
+                    setStoryText(event.target.value);
+                    setShowReview(false);
+                  }}
+                  placeholder="可以写下来，也可以先口头说给家人听。"
+                />
+              </label>
+
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button
+                  className={visual.primaryButton}
+                  onClick={() => setShowReview(true)}
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  我编好了
+                </Button>
+                <Button variant="outline" className={cn("bg-white", visual.outlineHover)} onClick={nextCard}>
+                  <Shuffle className="h-4 w-4" />
+                  换一张卡
+                </Button>
+              </div>
+
+              {showReview ? (
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <div className="rounded-lg border bg-white p-4">
+                    <div className={cn("mb-3 text-sm font-semibold", visual.text)}>检查清单</div>
+                    <div className="space-y-2">
+                      {card.checklist.map((item) => (
+                        <div key={item} className="flex gap-2 text-sm leading-6 text-slate-700">
+                          <CheckCircle2 className={cn("mt-0.5 h-4 w-4 shrink-0", visual.text)} />
+                          {item}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className={cn("rounded-lg border p-4", visual.softPanel, visual.softBorder)}>
+                    <div className={cn("mb-3 text-sm font-semibold", visual.text)}>参考示例</div>
+                    <p className="leading-7 text-slate-700">{card.example}</p>
+                  </div>
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
+        </section>
+
+        <KeywordHelperPanel visual={visual} />
+      </main>
+    </div>
+  );
+}
+
+function KeywordHelperPanel({ visual }: { visual: GameVisualConfig }) {
+  return (
+    <aside className="lg:sticky lg:top-24 lg:self-start">
+      <Card className={cn("overflow-hidden bg-white shadow-soft", visual.border)}>
+        <div className={cn("h-1 w-full", visual.accentBar)} />
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <span
+              className={cn(
+                "flex h-8 w-8 items-center justify-center rounded-lg",
+                visual.iconWrap,
+                visual.iconText,
+              )}
+            >
+              <BookOpen className="h-4 w-4" />
+            </span>
+            关键词卡片墙
+          </CardTitle>
+          <CardDescription>抽一张卡，围绕关键词编一道应用题。</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="flex flex-wrap gap-2">
+            {WORD_PROBLEM_KEYWORDS.map((keyword) => (
+              <Badge key={keyword} variant={visual.badgeVariant}>
+                {keyword}
+              </Badge>
+            ))}
+          </div>
+          <div className={cn("rounded-lg border p-4", visual.softPanel, visual.softBorder)}>
+            <div className={cn("mb-3 text-sm font-semibold", visual.text)}>创编提示</div>
+            <div className="space-y-3">
+              {KEYWORD_CARD_HELP.map((tip) => (
+                <div key={tip} className="flex gap-2 text-sm leading-6 text-slate-700">
+                  <Lightbulb className={cn("mt-0.5 h-4 w-4 shrink-0", visual.text)} />
+                  {tip}
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </aside>
   );
 }
 
@@ -1494,6 +2137,274 @@ function SummerHomeworkQuestionPanel({
   }
 
   return <TimesTablePanel question={question} submitAnswer={submitAnswer} visual={visual} />;
+}
+
+interface StrategyQuestionPanelProps {
+  answer: StrategyAnswerDraft;
+  question: StrategyQuestion;
+  setAnswer: React.Dispatch<React.SetStateAction<StrategyAnswerDraft>>;
+  submitAnswer: (isCorrect: boolean) => void;
+  visual: GameVisualConfig;
+}
+
+function StrategyQuestionPanel({
+  answer,
+  question,
+  setAnswer,
+  submitAnswer,
+  visual,
+}: StrategyQuestionPanelProps) {
+  const setField = (field: keyof StrategyAnswerDraft, value: string) => {
+    setAnswer((current) => ({ ...current, [field]: sanitizeStrategyNumberInput(value) }));
+  };
+  const submitCurrentAnswer = () => {
+    submitAnswer(isStrategyAnswerCorrect(question, makeStrategyAnswer(question, answer)));
+  };
+  const submitDisabled = !isStrategyDraftComplete(question, answer);
+
+  if (question.kind === "make-ten-strategy") {
+    return (
+      <div className="space-y-4 sm:space-y-5">
+        <StrategyPromptCard
+          label="凑十法"
+          prompt={`${question.left} + ${question.right}`}
+          tip={`先把 ${question.left} 补成 10，再加剩下的数。`}
+          visual={visual}
+        />
+        <div className="rounded-lg border bg-white p-4">
+          <div className="grid gap-3 sm:flex sm:flex-wrap sm:items-end sm:justify-center sm:gap-2 sm:text-3xl">
+            <StrategyStepGroup label="先凑成 10" visual={visual}>
+              <span className="sm:hidden">{question.left} +</span>
+              <span className="hidden sm:inline">
+                {question.left} + {question.right} = {question.left} +
+              </span>
+              <StrategyNumberInput
+                label="凑成 10"
+                value={answer.bridgeToTen}
+                onChange={(value) => setField("bridgeToTen", value)}
+                visual={visual}
+              />
+              <span className="sm:hidden">= 10</span>
+            </StrategyStepGroup>
+            <StrategyStepGroup label="拆出剩余" visual={visual}>
+              <span className="sm:hidden">
+                {question.right} = {answer.bridgeToTen || "?"} +
+              </span>
+              <span className="hidden sm:inline">+</span>
+              <StrategyNumberInput
+                label="剩余"
+                value={answer.remaining}
+                onChange={(value) => setField("remaining", value)}
+                visual={visual}
+              />
+              <span className="hidden sm:inline">= 10 + {answer.remaining || "__"}</span>
+            </StrategyStepGroup>
+            <StrategyStepGroup label="算出得数" visual={visual}>
+              <span className="sm:hidden">10 + {answer.remaining || "?"} =</span>
+              <span className="hidden sm:inline">=</span>
+              <StrategyNumberInput
+                label="得数"
+                value={answer.result}
+                onChange={(value) => setField("result", value)}
+                visual={visual}
+              />
+            </StrategyStepGroup>
+          </div>
+        </div>
+        <StrategySubmitButton
+          disabled={submitDisabled}
+          guardKey={question.id}
+          onSubmit={submitCurrentAnswer}
+          visual={visual}
+        />
+      </div>
+    );
+  }
+
+  if (question.kind === "break-ten-strategy") {
+    return (
+      <div className="space-y-4 sm:space-y-5">
+        <StrategyPromptCard
+          label="破十法"
+          prompt={`${question.left} - ${question.right}`}
+          tip={`先从 ${question.left} 里减掉一部分变成 10。`}
+          visual={visual}
+        />
+        <div className="rounded-lg border bg-white p-4">
+          <div className="grid gap-3 sm:flex sm:flex-wrap sm:items-end sm:justify-center sm:gap-2 sm:text-3xl">
+            <StrategyStepGroup label="先减到 10" visual={visual}>
+              <span className="sm:hidden">{question.left} -</span>
+              <span className="hidden sm:inline">
+                {question.left} - {question.right} = {question.left} -
+              </span>
+              <StrategyNumberInput
+                label="先减"
+                value={answer.toTen}
+                onChange={(value) => setField("toTen", value)}
+                visual={visual}
+              />
+              <span className="sm:hidden">= 10</span>
+            </StrategyStepGroup>
+            <StrategyStepGroup label="拆出剩余" visual={visual}>
+              <span className="sm:hidden">
+                {question.right} = {answer.toTen || "?"} +
+              </span>
+              <span className="hidden sm:inline">-</span>
+              <StrategyNumberInput
+                label="再减"
+                value={answer.remaining}
+                onChange={(value) => setField("remaining", value)}
+                visual={visual}
+              />
+            </StrategyStepGroup>
+            <StrategyStepGroup label="算出得数" visual={visual}>
+              <span className="sm:hidden">10 - {answer.remaining || "?"} =</span>
+              <span className="hidden sm:inline">=</span>
+              <StrategyNumberInput
+                label="得数"
+                value={answer.result}
+                onChange={(value) => setField("result", value)}
+                visual={visual}
+              />
+            </StrategyStepGroup>
+          </div>
+        </div>
+        <StrategySubmitButton
+          disabled={submitDisabled}
+          guardKey={question.id}
+          onSubmit={submitCurrentAnswer}
+          visual={visual}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4 sm:space-y-5">
+      <StrategyPromptCard
+        label="平十法"
+        prompt={`${question.left} - ${question.right}`}
+        tip={`先减 10，再把多减掉的 ${10 - question.right} 补回来。`}
+        visual={visual}
+      />
+      <div className="rounded-lg border bg-white p-4">
+        <div className="grid gap-3 sm:flex sm:flex-wrap sm:items-end sm:justify-center sm:gap-2 sm:text-3xl">
+          <StrategyStepGroup label="先减 10" visual={visual}>
+            <span className="sm:hidden">
+              {question.left} - 10 = {question.left - 10}
+            </span>
+            <span className="hidden sm:inline">
+              {question.left} - {question.right} = {question.left} - 10 +
+            </span>
+          </StrategyStepGroup>
+          <StrategyStepGroup label="补回" visual={visual}>
+            <span className="sm:hidden">{question.left - 10} +</span>
+            <StrategyNumberInput
+              label="补回"
+              value={answer.compensation}
+              onChange={(value) => setField("compensation", value)}
+              visual={visual}
+            />
+            <span className="sm:hidden">=</span>
+          </StrategyStepGroup>
+          <StrategyStepGroup label="算出得数" visual={visual}>
+            <span className="hidden sm:inline">=</span>
+            <StrategyNumberInput
+              label="得数"
+              value={answer.result}
+              onChange={(value) => setField("result", value)}
+              visual={visual}
+            />
+          </StrategyStepGroup>
+        </div>
+      </div>
+      <StrategySubmitButton
+        disabled={submitDisabled}
+        guardKey={question.id}
+        onSubmit={submitCurrentAnswer}
+        visual={visual}
+      />
+    </div>
+  );
+}
+
+interface StrategyPromptCardProps {
+  label: string;
+  prompt: string;
+  tip: string;
+  visual: GameVisualConfig;
+}
+
+function StrategyPromptCard({ label, prompt, tip, visual }: StrategyPromptCardProps) {
+  return (
+    <div className={cn("rounded-lg border p-4 text-center sm:p-5", visual.softPanel, visual.softBorder)}>
+      <div className={cn("text-sm font-semibold", visual.text)}>{label}</div>
+      <div className="mt-2 text-5xl font-bold text-slate-950 sm:text-6xl">{prompt}</div>
+      <div className="mt-3 text-sm text-slate-600">{tip}</div>
+    </div>
+  );
+}
+
+interface StrategyStepGroupProps {
+  children: React.ReactNode;
+  label: string;
+  visual: GameVisualConfig;
+}
+
+function StrategyStepGroup({ children, label, visual }: StrategyStepGroupProps) {
+  return (
+    <div className={cn("rounded-lg border p-2.5 sm:p-3", visual.softPanel, visual.softBorder, "sm:contents")}>
+      <div className={cn("mb-1 text-xs font-semibold", visual.text, "sm:hidden")}>{label}</div>
+      <div className="flex flex-wrap items-end justify-center gap-2 text-2xl font-bold text-slate-950 sm:contents">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+interface StrategyNumberInputProps {
+  label: string;
+  onChange: (value: string) => void;
+  value: string;
+  visual: GameVisualConfig;
+}
+
+function StrategyNumberInput({ label, onChange, value, visual }: StrategyNumberInputProps) {
+  return (
+    <label className="flex w-16 flex-col gap-1 sm:w-20">
+      <span className={cn("text-center text-xs font-semibold", visual.text)}>{label}</span>
+      <Input
+        className="h-12 px-0 text-center text-2xl font-bold sm:h-14"
+        inputMode="numeric"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder="?"
+      />
+    </label>
+  );
+}
+
+interface StrategySubmitButtonProps {
+  disabled: boolean;
+  guardKey: string;
+  onSubmit: () => void;
+  visual: GameVisualConfig;
+}
+
+function StrategySubmitButton({ disabled, guardKey, onSubmit, visual }: StrategySubmitButtonProps) {
+  return (
+    <GuardedButton
+      guardKey={`${guardKey}:submit`}
+      type="button"
+      size="lg"
+      className={cn("w-full", visual.primaryButton)}
+      disabled={disabled}
+      onGuardedClick={onSubmit}
+    >
+      <CheckCircle2 className="h-5 w-5" />
+      提交
+    </GuardedButton>
+  );
 }
 
 interface ColumnArithmeticPanelProps {

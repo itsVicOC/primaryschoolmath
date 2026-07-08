@@ -33,7 +33,7 @@ describe("score row mapping", () => {
 
   it("explains when the summer homework game key migration is missing", () => {
     expect(formatScoreErrorMessage("violates check constraint scores_score_game_key_check")).toBe(
-      "排行榜数据库还未支持暑假作业小游戏，请先执行 supabase/migrations/20260630_summer_homework_games.sql。",
+      "排行榜数据库还未支持最新小游戏，请先按顺序执行 supabase/migrations/20260630_summer_homework_games.sql 和 supabase/migrations/20260702_first_grade_strategy_games.sql。",
     );
   });
 
@@ -46,6 +46,9 @@ describe("score row mapping", () => {
       "column-arithmetic",
       "multiplication-groups",
       "times-table",
+      "make-ten-strategy",
+      "break-ten-strategy",
+      "balance-ten-strategy",
     ]);
   });
 });

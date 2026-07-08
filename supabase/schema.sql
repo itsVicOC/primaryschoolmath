@@ -10,7 +10,10 @@ create table if not exists public.scores (
       'compare',
       'column-arithmetic',
       'multiplication-groups',
-      'times-table'
+      'times-table',
+      'make-ten-strategy',
+      'break-ten-strategy',
+      'balance-ten-strategy'
     )
   ),
   score_player_id text not null check (char_length(trim(score_player_id)) between 1 and 24),
@@ -44,7 +47,10 @@ create policy "anyone can insert scores"
       'compare',
       'column-arithmetic',
       'multiplication-groups',
-      'times-table'
+      'times-table',
+      'make-ten-strategy',
+      'break-ten-strategy',
+      'balance-ten-strategy'
     )
     and char_length(trim(score_player_id)) between 1 and 24
     and score_correct_count between 0 and 100

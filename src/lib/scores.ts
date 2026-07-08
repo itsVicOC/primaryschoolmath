@@ -8,6 +8,9 @@ export const GAME_KEYS = [
   "column-arithmetic",
   "multiplication-groups",
   "times-table",
+  "make-ten-strategy",
+  "break-ten-strategy",
+  "balance-ten-strategy",
 ] as const;
 
 export type GameKey = (typeof GAME_KEYS)[number];
@@ -43,7 +46,7 @@ const SUPABASE_MISSING_MESSAGE = "未配置 Supabase，排行榜暂不可用。"
 const SCORE_SCHEMA_MISSING_MESSAGE =
   "排行榜数据库还未升级，请先执行 supabase/migrations/20260630_multi_game_scores.sql。";
 const SCORE_GAME_KEY_MISSING_MESSAGE =
-  "排行榜数据库还未支持暑假作业小游戏，请先执行 supabase/migrations/20260630_summer_homework_games.sql。";
+  "排行榜数据库还未支持最新小游戏，请先按顺序执行 supabase/migrations/20260630_summer_homework_games.sql 和 supabase/migrations/20260702_first_grade_strategy_games.sql。";
 
 export interface ScoreRow {
   score_id: string;

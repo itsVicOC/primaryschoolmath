@@ -1,6 +1,6 @@
 # 小学数学练习
 
-一个面向小学生的数学练习小游戏网站。当前包含一年级口算练习、凑十小火车、十位个位积木、比大小鳄鱼，以及暑假作业改编的竖式工坊、分组乘法、口诀快答，并通过 Supabase 保存每个游戏的独立排行榜。
+一个面向小学生的数学练习小游戏网站。当前包含一年级口算练习、凑十小火车、十位个位积木、比大小鳄鱼、凑十/破十/平十算理拆步、关键词编题，以及暑假作业改编的竖式工坊、分组乘法、口诀快答，并通过 Supabase 保存计分游戏的独立排行榜。
 
 ## 本地开发
 
@@ -20,6 +20,8 @@ npm run dev
 如果数据库已上线并且还没有 `score_game_key` 字段，再执行 `supabase/migrations/20260630_multi_game_scores.sql`。
 
 如果数据库已上线并且还没有暑假作业小游戏的排行榜 key，再执行 `supabase/migrations/20260630_summer_homework_games.sql`。
+
+如果数据库已上线并且还没有一年级算理小游戏的排行榜 key，再执行 `supabase/migrations/20260702_first_grade_strategy_games.sql`。
 
 新项目可直接执行 `supabase/schema.sql`。
 
